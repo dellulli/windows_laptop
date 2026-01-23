@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSpring, animated } from '@react-spring/web'
-import { FilesetResolver, FaceLandmarker } from '@mediapipe/tasks-vision'
 import LoginPage from './LoginPage'
 
 // App title constant
@@ -140,12 +139,13 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
   useEffect(() => {
     const initializeFaceLandmarker = async () => {
       try {
-        const vision = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm'
+        const visionModule = await import(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8'
         )
 
-        // CRITICAL FIX: Explicitly set WASM paths for GitHub Pages compatibility
-        FaceLandmarker.setWasmPaths(
+        const { FilesetResolver, FaceLandmarker } = visionModule
+
+        const vision = await FilesetResolver.forVisionTasks(
           'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm'
         )
 
@@ -157,11 +157,12 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
           runningMode: 'VIDEO',
           numFaces: 1,
         })
+
         faceLandmarkerRef.current = faceLandmarker
-        console.log('Face Landmarker initialized successfully')
-      } catch (error) {
-        console.error('Failed to initialize Face Landmarker:', error)
-        setCameraError(`Failed to load Face Landmarker model: ${error.message}`)
+        console.log('Face Landmarker initialized')
+
+      } catch (err) {
+        console.error(err)
       }
     }
 
