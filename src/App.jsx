@@ -229,18 +229,22 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
     }
   }, [])
 
-  // Load overlay images and preload assets
+  // Preload critical overlay image immediately
   useEffect(() => {
-    // Always load michonne_kiss.png
     const kissImg_ = new Image()
     kissImg_.src = kissImg
     kissImg_.onload = () => {
       overlayImageRef.current = kissImg_
+      console.log('Michonne kiss image preloaded')
     }
     kissImg_.onerror = () => {
+      console.error('Failed to preload Michonne overlay image')
       setCameraError('Failed to load Michonne overlay image')
     }
+  }, [])
 
+  // Load overlay images and preload assets
+  useEffect(() => {
     // Always load heart filter
     const heartImg = new Image()
     heartImg.src = heartFilterImg
