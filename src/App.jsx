@@ -263,19 +263,37 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
   const startWebcam = async () => {
     try {
       setCameraError(null)
+      console.log('Requesting camera access...')
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
       })
+      console.log('Camera stream obtained:', stream)
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        videoRef.current.play()
+        console.log('Stream assigned to video element')
+        const playPromise = videoRef.current.play()
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.error('Video play error:', error)
+            setCameraError(`Video play error: ${error.message}`)
+          })
+        }
         setIsWebcamActive(true)
+        console.log('Webcam activated')
       }
     } catch (error) {
       console.error('Error accessing webcam:', error)
-      setCameraError(
-        'Could not access webcam. Please check permissions.'
-      )
+      console.error('Error name:', error.name)
+      console.error('Error message:', error.message)
+      let errorMsg = 'Could not access webcam. Please check permissions.'
+      if (error.name === 'NotAllowedError') {
+        errorMsg = 'Camera permission denied. Please allow camera access in your browser settings.'
+      } else if (error.name === 'NotFoundError') {
+        errorMsg = 'No camera found on this device.'
+      } else if (error.name === 'NotReadableError') {
+        errorMsg = 'Camera is already in use by another application.'
+      }
+      setCameraError(errorMsg)
       setIsWebcamActive(false)
     }
   }
@@ -1258,8 +1276,12 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
 
               <video
                 ref={videoRef}
+                autoPlay
+                muted
+                playsInline
                 style={{ display: 'none' }}
                 onLoadedMetadata={() => {
+                  console.log('Video metadata loaded')
                   if (isWebcamActive) {
                     drawFrame()
                   }}
