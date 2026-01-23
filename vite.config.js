@@ -5,4 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: '/windows_laptop/',
   plugins: [react()],
+  server: {
+    headers: {
+      'Content-Type': 'application/wasm'
+    }
+  }
 })

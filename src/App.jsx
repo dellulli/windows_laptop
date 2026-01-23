@@ -141,12 +141,18 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
       try {
         // Dynamically import MediaPipe
         const { FilesetResolver, FaceLandmarker } = await import(
-          '@mediapipe/tasks-vision'
+          '@mediapipe/tasks-vision@0.10.8'
         )
 
         const vision = await FilesetResolver.forVisionTasks(
           'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm'
         )
+
+        // CRITICAL FIX: Explicitly set WASM paths for GitHub Pages compatibility
+        FaceLandmarker.setWasmPaths(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm'
+        )
+
         const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
