@@ -12,6 +12,10 @@ import clickSound from './assets/click.mp3'
 import cameraSnapSound from './assets/camera_snap.mp3'
 import musicFile from './assets/music.mp3'
 import musicFile2 from './assets/music2.mp3'
+import musicFile3 from './assets/music3.mp3'
+import musicFile4 from './assets/music4.mp3'
+import musicFile5 from './assets/music5.mp3'
+import musicFile6 from './assets/music6.mp3'
 import cursorImg from './assets/cursor.svg'
 import emptyBinImg from './assets/empty_bin.webp'
 import fullBinImg from './assets/Recycle_bin_full.webp'
@@ -31,6 +35,22 @@ const PLAYLIST = [
   {
     title: 'Lover, You Should\'ve Come Over',
     file: musicFile2
+  },
+  {
+    title: 'Jigsaw Falling Into Place',
+    file: musicFile3
+  },
+  {
+    title: 'Bojack\'s Theme',
+    file: musicFile4
+  },
+  {
+    title: 'Dracula',
+    file: musicFile5
+  },
+  {
+    title: 'Lovetripper',
+    file: musicFile6
   }
 ]
 import './App.css'
@@ -56,6 +76,7 @@ function App() {
   const [offsetX, setOffsetX] = useState(-27)
   const [offsetY, setOffsetY] = useState(-84)
   const [scale, setScale] = useState(0.7)
+  const [rotation, setRotation] = useState(0)
   const [isWebcamActive, setIsWebcamActive] = useState(false)
   const [cameraError, setCameraError] = useState(null)
   const [showAbout, setShowAbout] = useState(false)
@@ -84,6 +105,7 @@ function App() {
   const [isDraggingSlider, setIsDraggingSlider] = useState(false)
   const [currentSongIndex, setCurrentSongIndex] = useState(0)
   const [audioCurrentTime, setAudioCurrentTime] = useState(0)
+  const [replayCurrentSong, setReplayCurrentSong] = useState(false)
   const bgMusicRef = useRef(null)
   const imageModalRef = useRef(null)
   const [dragState, setDragState] = useState(null)
@@ -622,6 +644,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
             ctx.globalAlpha = 1
             ctx.save()
             ctx.translate(drawX + scaledWidth / 2, drawY + scaledHeight / 2)
+            ctx.rotate((rotation * Math.PI) / 180)
             ctx.scale(-1, 1)
             ctx.drawImage(
               img,
@@ -856,7 +879,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
         cancelAnimationFrame(animationIdRef.current)
       }
     }
-  }, [isWebcamActive, offsetX, offsetY, scale, currentFilter, use4Grid, useHeartFilter, useBloodSplatter, currentBorder, showMichonneOverlay])
+  }, [isWebcamActive, offsetX, offsetY, scale, rotation, currentFilter, use4Grid, useHeartFilter, useBloodSplatter, currentBorder, showMichonneOverlay])
 
   // Compress canvas to JPEG for smaller file size
   const compressCanvasToJpeg = (canvas, quality = 0.7) => {
@@ -1082,6 +1105,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
   // Handle next song
   const handleNextSong = () => {
     playClickSound()
+    setReplayCurrentSong(false)
     const nextIndex = (currentSongIndex + 1) % PLAYLIST.length
     setCurrentSongIndex(nextIndex)
     setSliderPosition(0)
@@ -1102,6 +1126,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
   // Handle previous song
   const handlePreviousSong = () => {
     playClickSound()
+    setReplayCurrentSong(false)
     const prevIndex = (currentSongIndex - 1 + PLAYLIST.length) % PLAYLIST.length
     setCurrentSongIndex(prevIndex)
     setSliderPosition(0)
@@ -1407,7 +1432,16 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
     }}>
       <audio ref={clickAudioRef} src={clickSound} />
       <audio ref={cameraSnapAudioRef} src={cameraSnapSound} />
-      <audio ref={bgMusicRef} src={PLAYLIST[currentSongIndex].file} loop />
+      <audio ref={bgMusicRef} src={PLAYLIST[currentSongIndex].file} onEnded={() => {
+        if (replayCurrentSong) {
+          if (bgMusicRef.current) {
+            bgMusicRef.current.currentTime = 0
+            bgMusicRef.current.play()
+          }
+        } else {
+          handleNextSong()
+        }
+      }} />
       <audio ref={trashAudioRef} src={trashSound} />
 
       {showDesktop ? (
@@ -1756,16 +1790,18 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                       playClickSound()
                       setCurrentFilter('normal')
                     }}
+                    disabled={!isWebcamActive}
                     style={{
                       padding: '6px 12px',
-                      backgroundColor: currentFilter === 'normal' ? '#000080' : '#c0c0c0',
-                      color: currentFilter === 'normal' ? 'white' : 'black',
+                      backgroundColor: currentFilter === 'normal' ? '#000080' : isWebcamActive ? '#c0c0c0' : '#a0a0a0',
+                      color: currentFilter === 'normal' ? 'white' : isWebcamActive ? 'black' : '#606060',
                       border: '1px solid',
-                      borderColor: currentFilter === 'normal' ? '#000080' : '#dfdfdf #808080 #808080 #dfdfdf',
-                      cursor: 'pointer',
+                      borderColor: currentFilter === 'normal' ? '#000080' : isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                      cursor: isWebcamActive ? 'pointer' : 'not-allowed',
                       fontSize: '11px',
                       fontWeight: 'bold',
-                      outline: 'none'
+                      outline: 'none',
+                      opacity: isWebcamActive ? 1 : 0.5
                     }}
                   >
                     Normal
@@ -1775,16 +1811,18 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                       playClickSound()
                       setCurrentFilter('blackAndWhite')
                     }}
+                    disabled={!isWebcamActive}
                     style={{
                       padding: '6px 12px',
-                      backgroundColor: currentFilter === 'blackAndWhite' ? '#000080' : '#c0c0c0',
-                      color: currentFilter === 'blackAndWhite' ? 'white' : 'black',
+                      backgroundColor: currentFilter === 'blackAndWhite' ? '#000080' : isWebcamActive ? '#c0c0c0' : '#a0a0a0',
+                      color: currentFilter === 'blackAndWhite' ? 'white' : isWebcamActive ? 'black' : '#606060',
                       border: '1px solid',
-                      borderColor: currentFilter === 'blackAndWhite' ? '#000080' : '#dfdfdf #808080 #808080 #dfdfdf',
-                      cursor: 'pointer',
+                      borderColor: currentFilter === 'blackAndWhite' ? '#000080' : isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                      cursor: isWebcamActive ? 'pointer' : 'not-allowed',
                       fontSize: '11px',
                       fontWeight: 'bold',
-                      outline: 'none'
+                      outline: 'none',
+                      opacity: isWebcamActive ? 1 : 0.5
                     }}
                   >
                     B&W
@@ -1807,18 +1845,21 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                         playClickSound()
                         setUseHeartFilter(e.target.checked)
                       }}
+                      disabled={!isWebcamActive}
                       style={{
-                        cursor: 'pointer',
+                        cursor: isWebcamActive ? 'pointer' : 'not-allowed',
                         width: '14px',
-                        height: '14px'
+                        height: '14px',
+                        opacity: isWebcamActive ? 1 : 0.5
                       }}
                     />
                     <label
                       htmlFor="heartToggle"
                       style={{
                         fontSize: '11px',
-                        cursor: 'pointer',
-                        userSelect: 'none'
+                        cursor: isWebcamActive ? 'pointer' : 'not-allowed',
+                        userSelect: 'none',
+                        opacity: isWebcamActive ? 1 : 0.5
                       }}
                     >
                       Hearts ♥
@@ -1840,18 +1881,21 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                         playClickSound()
                         setUse4Grid(e.target.checked)
                       }}
+                      disabled={!isWebcamActive}
                       style={{
-                        cursor: 'pointer',
+                        cursor: isWebcamActive ? 'pointer' : 'not-allowed',
                         width: '14px',
-                        height: '14px'
+                        height: '14px',
+                        opacity: isWebcamActive ? 1 : 0.5
                       }}
                     />
                     <label
                       htmlFor="fourGridToggle"
                       style={{
                         fontSize: '11px',
-                        cursor: 'pointer',
-                        userSelect: 'none'
+                        cursor: isWebcamActive ? 'pointer' : 'not-allowed',
+                        userSelect: 'none',
+                        opacity: isWebcamActive ? 1 : 0.5
                       }}
                     >
                       4 Grid View
@@ -1868,10 +1912,12 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                         setUseBloodSplatter(e.target.checked)
                         playClickSound()
                       }}
+                      disabled={!isWebcamActive}
                       style={{
-                        cursor: 'pointer',
+                        cursor: isWebcamActive ? 'pointer' : 'not-allowed',
                         width: '14px',
-                        height: '14px'
+                        height: '14px',
+                        opacity: isWebcamActive ? 1 : 0.5
                       }}
                     />
                     <label
@@ -1889,7 +1935,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
 
                   {/* Border Selection */}
                   <div style={{ marginTop: '10px' }}>
-                    <div style={{ fontSize: '11px', marginBottom: '5px' }}>Borders:</div>
+                    <div style={{ fontSize: '11px', marginBottom: '5px', opacity: isWebcamActive ? 1 : 0.5 }}>Borders:</div>
                     <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                       <button
                         onClick={() => {
@@ -1899,17 +1945,19 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                           setCurrentBorder(options[newIndex])
                           playClickSound()
                         }}
+                        disabled={!isWebcamActive}
                         style={{
                           width: '20px',
                           height: '20px',
                           padding: '0',
                           fontSize: '10px',
-                          cursor: 'pointer',
-                          backgroundColor: '#c0c0c0',
+                          cursor: isWebcamActive ? 'pointer' : 'not-allowed',
+                          backgroundColor: isWebcamActive ? '#c0c0c0' : '#a0a0a0',
                           border: '2px solid',
-                          borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                          borderColor: isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
                           color: '#000080',
-                          fontWeight: 'bold'
+                          fontWeight: 'bold',
+                          opacity: isWebcamActive ? 1 : 0.5
                         }}
                       >
                         &lt;
@@ -1927,17 +1975,19 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                           setCurrentBorder(options[newIndex])
                           playClickSound()
                         }}
+                        disabled={!isWebcamActive}
                         style={{
                           width: '20px',
                           height: '20px',
                           padding: '0',
                           fontSize: '10px',
-                          cursor: 'pointer',
-                          backgroundColor: '#c0c0c0',
+                          cursor: isWebcamActive ? 'pointer' : 'not-allowed',
+                          backgroundColor: isWebcamActive ? '#c0c0c0' : '#a0a0a0',
                           border: '2px solid',
-                          borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                          borderColor: isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
                           color: '#000080',
-                          fontWeight: 'bold'
+                          fontWeight: 'bold',
+                          opacity: isWebcamActive ? 1 : 0.5
                         }}
                       >
                         &gt;
@@ -1955,10 +2005,12 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                         setShowMichonneOverlay(e.target.checked)
                         playClickSound()
                       }}
+                      disabled={!isWebcamActive}
                       style={{
-                        cursor: 'pointer',
+                        cursor: isWebcamActive ? 'pointer' : 'not-allowed',
                         width: '14px',
-                        height: '14px'
+                        height: '14px',
+                        opacity: isWebcamActive ? 1 : 0.5
                       }}
                     />
                     <label
@@ -2112,7 +2164,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
             {!isWebcamActive && (
               <>
                 <p>Welcome to Michonne's Kiss Cam!</p>
-                <p>Click the "Kiss Cam" application to begin using your webcam.</p>
+                <p>Click "Start" to open the web cam and try out filters, and then capture!</p>
               </>
             )}
 
@@ -2175,6 +2227,24 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                   </div>
                 </div>
 
+                <div className="control-group">
+                  <label>
+                    Rotation: <span className="value">{rotation}°</span>
+                  </label>
+                  <div style={{ position: 'relative', height: '24px', display: 'flex', alignItems: 'center' }}>
+                    <div style={{ position: 'absolute', width: '100%', height: '1px', backgroundColor: '#666', top: '50%' }}></div>
+                    <input
+                      type="range"
+                      min="-180"
+                      max="180"
+                      value={rotation}
+                      onChange={(e) => setRotation(Number(e.target.value))}
+                      className="slider"
+                      style={{ position: 'relative', zIndex: 1, width: '100%' }}
+                    />
+                  </div>
+                </div>
+
                 <p className="tips">💡 Adjust the controls to change Michonne's position to your liking, then capture!</p>
               </>
             )}
@@ -2189,6 +2259,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                   setOffsetX(-27)
                   setOffsetY(-84)
                   setScale(0.6)
+                  setRotation(0)
                 }}
                 style={{
                   marginLeft: 'auto',
@@ -2244,7 +2315,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
             }}
             onMouseDown={(e) => handleMouseDown(e, 'downloads', downloadsPos)}
           >
-            <h1 style={{ margin: '2px 4px', fontSize: '14px', fontWeight: 'bold' }}>📁 Downloads</h1>
+            <h1 style={{ margin: '2px 4px', fontSize: '14px', fontWeight: 'bold' }}>Downloads ⋆｡°✩</h1>
             <button 
               onClick={handleCloseDownloads}
               style={{
@@ -2423,7 +2494,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
             }}
             onMouseDown={(e) => handleMouseDown(e, 'musicPlayer', musicPlayerPos)}
           >
-            <h1 style={{ margin: '2px 4px', fontSize: '14px', fontWeight: 'bold' }}>Music Player</h1>
+            <h1 style={{ margin: '2px 4px', fontSize: '14px', fontWeight: 'bold' }}>Music Player ⋆⭒˚｡⋆</h1>
             <button 
               onClick={handleCloseMusicPlayer}
               style={{
@@ -2450,7 +2521,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
               fontWeight: 'bold',
               color: '#000080'
             }}>
-              {isMusciPlaying ? 'Now Playing:' : 'Music Player'}
+              {isMusciPlaying ? 'Now Playing:' : '♪ ₊‧Music Player‧₊ ♪ '}
             </div>
             <div style={{
               marginBottom: '15px',
@@ -2460,10 +2531,36 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
               minHeight: '30px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              gap: '8px'
             }}>
               {PLAYLIST[currentSongIndex].title}
+              <button
+                onClick={() => {
+                  playClickSound()
+                  setReplayCurrentSong(!replayCurrentSong)
+                }}
+                style={{
+                  padding: '2px 4px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  border: '2px outset #dfdfdf',
+                  background: replayCurrentSong ? '#ffff00' : '#000080',
+                  color: replayCurrentSong ? '#000080' : '#ffffff',
+                  fontFamily: '"MS Sans Serif", Arial, sans-serif',
+                  outline: 'none',
+                  textAlign: 'center',
+                  transition: 'all 0.1s',
+                  lineHeight: '1'
+                }}
+                title="Replay current song"
+              >
+                ↻
+              </button>
             </div>
+
+            {/* Replay button */}
 
             {/* Play/Pause and Navigation arrows */}
             <div style={{
@@ -2673,7 +2770,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
             }}
             onMouseDown={(e) => handleMouseDown(e, 'trash', trashPos)}
           >
-            <h1 style={{ margin: '2px 4px', fontSize: '14px', fontWeight: 'bold' }}>🗑️ Trash</h1>
+            <h1 style={{ margin: '2px 4px', fontSize: '14px', fontWeight: 'bold' }}>Trash ⋆｡°✩</h1>
             <div style={{ display: 'flex', gap: '4px', marginRight: '2px' }}>
               {trashedImages.length > 0 && (
                 <button 
@@ -3685,7 +3782,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
             }}
             onMouseDown={(e) => handleMouseDown(e, 'purplePalace', purplePalacePos)}
           >
-            <h1 style={{ margin: '2px 4px', fontSize: '14px', fontWeight: 'bold' }}>Purble Palace</h1>
+            <h1 style={{ margin: '2px 4px', fontSize: '14px', fontWeight: 'bold' }}>Purble Palace ⋆｡°✩</h1>
             <button 
               onClick={handleClosePurplePalace}
               style={{
@@ -3782,7 +3879,10 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
             >
               <span style={{ fontWeight: 'bold', fontSize: '11px' }}>Save As</span>
               <button
-                onClick={() => setShowSaveOptions(false)}
+                onClick={() => {
+                  playClickSound()
+                  setShowSaveOptions(false)
+                }}
                 style={{
                   background: 'linear-gradient(to bottom, #dfdfdf, #808080)',
                   border: '1px solid',
@@ -3813,6 +3913,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                 {/* Save Just Image */}
                 <button
                   onClick={() => {
+                    playClickSound()
                     setShowSaveOptions(false)
                     // Download original image
                     fetch(selectedImage.dataUrl)
@@ -3847,9 +3948,11 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                 {/* Save with File Properties */}
                 <button
                   onClick={async () => {
+                    playClickSound()
                     setShowSaveOptions(false)
                     // Capture the image modal as screenshot
                     if (imageModalRef.current) {
+                      const imageIndex = capturedImages.findIndex(img => img.id === selectedImage.id) + 1
                       const canvas = await html2canvas(imageModalRef.current, {
                         backgroundColor: null,
                         scale: 2,
@@ -3860,7 +3963,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
                         const url = URL.createObjectURL(blob)
                         const link = document.createElement('a')
                         link.href = url
-                        link.download = `${selectedImage.name || `kiss_${selectedImage.id}`}_properties.png`
+                        link.download = `michonne_kisses_${imageIndex}_window.png`
                         document.body.appendChild(link)
                         link.click()
                         document.body.removeChild(link)
@@ -3888,7 +3991,10 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
               {/* Buttons */}
               <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
                 <button
-                  onClick={() => setShowSaveOptions(false)}
+                  onClick={() => {
+                    playClickSound()
+                    setShowSaveOptions(false)
+                  }}
                   style={{
                     padding: '4px 16px',
                     backgroundColor: '#c0c0c0',
