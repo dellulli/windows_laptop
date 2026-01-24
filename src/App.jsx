@@ -706,7 +706,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
           )
 
           // Calculate dynamic scale based on face size (proximity to camera)
-          let dynamicScale = scale * 0.3
+          let dynamicScale = 0.2
           if (leftEye && rightEye) {
             const eyeDistance = Math.sqrt(
               Math.pow(rightEye.x - leftEye.x, 2) + 
@@ -714,8 +714,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
             )
             const referenceEyeDistance = 0.15
             const proximityRatio = eyeDistance / referenceEyeDistance
-            dynamicScale = scale * 0.3 * proximityRatio
-            dynamicScale = Math.max(0.15, Math.min(0.6, dynamicScale))
+            dynamicScale = 0.2 * proximityRatio
+            dynamicScale = Math.max(0.1, Math.min(0.4, dynamicScale))
           }
 
           const heartImg = heartFilterRef.current
@@ -743,76 +743,34 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
       }
     }
 
-    // Draw blood splatter overlay if enabled (mapped to center of face)
-    // Apply to all detected faces
-    if (useBloodSplatter && bloodSplatterRef.current && allDetectedFaces.length > 0) {
-      try {
-        allDetectedFaces.forEach((faceLandmarks) => {
-          const noseLandmark = faceLandmarks[4] // Nose tip (center of face)
-          const leftEye = faceLandmarks[33]  // Left eye landmark
-          const rightEye = faceLandmarks[263] // Right eye landmark
-          
-          if (!noseLandmark) return
-          
-          const { pixelX: centerX, pixelY: centerY } = normalizedToCanvasCoordinates(
-            noseLandmark.x,
-            noseLandmark.y,
-            canvas.width,
-            canvas.height
-          )
-
-          // Calculate dynamic scale based on face size (proximity to camera)
-          let dynamicScale = scale * 1.5
-          if (leftEye && rightEye) {
-            const eyeDistance = Math.sqrt(
-              Math.pow(rightEye.x - leftEye.x, 2) + 
-              Math.pow(rightEye.y - leftEye.y, 2)
-            )
-            const referenceEyeDistance = 0.15
-            const proximityRatio = eyeDistance / referenceEyeDistance
-            dynamicScale = scale * 1.5 * proximityRatio
-            dynamicScale = Math.max(0.8, Math.min(2.5, dynamicScale))
-          }
-
-          const splatterImg = bloodSplatterRef.current
-          const splatterWidth = splatterImg.width * dynamicScale
-          const splatterHeight = splatterImg.height * dynamicScale
-          const splatterX = centerX - splatterWidth / 2 - 10 + offsetX // More to the right
-          const splatterY = centerY - splatterHeight / 2 + 80 + offsetY // Lower
-
-          ctx.globalAlpha = 0.7 // Darker/less bright
-          ctx.drawImage(splatterImg, splatterX, splatterY, splatterWidth, splatterHeight)
-          ctx.globalAlpha = 1.0
-        })
-      } catch (error) {
-        console.error('Blood splatter positioning error:', error)
-      }
-    }
-
-    // Draw border overlay if one is selected (rendered after michonne_kiss for higher z-index)
+    // Draw border overlay if one is selected (skip film_frame and katana_border in 4-grid mode as they'll be drawn later)
     if (currentBorder !== 'none' && borderRef.current) {
-      const borderImg = borderRef.current
-      let borderScale = 1 // Full canvas size by default
-      let borderOpacity = 1 // Default opacity
+      const shouldSkipForGridMode = use4Grid && (currentBorder === 'film_frame' || currentBorder === 'katana_border')
       
-      // Make film_frame larger and reduce opacity
-      if (currentBorder === 'film_frame') {
-        borderScale = 1
-        borderOpacity = 0.8 // Reduced opacity for film_frame
-      }
-      if (currentBorder === 'filter_border') {
-        borderScale = 1.25
-        borderOpacity = 1 // Reduced opacity for film_frame
-      }
-      
-      const borderWidth = canvas.width * borderScale
-      const borderHeight = canvas.height * borderScale
-      const borderX = (canvas.width - borderWidth) / 2
-      const borderY = (canvas.height - borderHeight) / 2
+      if (!shouldSkipForGridMode) {
+        const borderImg = borderRef.current
+        let borderScale = 1 // Full canvas size by default
+        let borderOpacity = 1 // Default opacity
+        
+        // Make film_frame larger and reduce opacity
+        if (currentBorder === 'film_frame') {
+          borderScale = 1
+          borderOpacity = 0.8 // Reduced opacity for film_frame
+        }
+        if (currentBorder === 'filter_border') {
+          borderScale = 1.25
+          borderOpacity = 1 // Reduced opacity for film_frame
+        }
+        
+        const borderWidth = canvas.width * borderScale
+        const borderHeight = canvas.height * borderScale
+        const borderX = (canvas.width - borderWidth) / 2
+        const borderY = (canvas.height - borderHeight) / 2
 
-      ctx.globalAlpha = borderOpacity
-      ctx.drawImage(borderImg, borderX, borderY, borderWidth, borderHeight)
-      ctx.globalAlpha = 1.0
+        ctx.globalAlpha = borderOpacity
+        ctx.drawImage(borderImg, borderX, borderY, borderWidth, borderHeight)
+        ctx.globalAlpha = 1.0
+      }
     }
 
     // If 4-grid mode: create a temporary canvas with the single frame, then tile it 4 times
@@ -867,6 +825,42 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
       ctx.fillStyle = '#808080'
       ctx.fillRect(0, canvas.height - frameWidth / 2, canvas.width, frameWidth / 2)
       ctx.fillRect(canvas.width - frameWidth / 2, 0, frameWidth / 2, canvas.height)
+    }
+
+    // Draw film_frame or katana_border once across all 4 grids (if in 4-grid mode)
+    if (use4Grid && (currentBorder === 'film_frame' || currentBorder === 'katana_border') && borderRef.current) {
+      const borderImg = borderRef.current
+      let borderOpacity = 1
+
+      if (currentBorder === 'film_frame') {
+        borderOpacity = 0.8
+      }
+
+      const borderWidth = canvas.width
+      const borderHeight = canvas.height
+
+      ctx.globalAlpha = borderOpacity
+      ctx.drawImage(borderImg, 0, 0, borderWidth, borderHeight)
+      ctx.globalAlpha = 1.0
+    }
+
+    // Draw blood splatter overlay if enabled (highest z-index)
+    // Single overlay across entire screen (or all 4 grids if in 4-grid mode)
+    if (useBloodSplatter && bloodSplatterRef.current) {
+      try {
+        const splatterImg = bloodSplatterRef.current
+        const splatterScale = 1.2 // Scale to cover full screen
+        const splatterWidth = canvas.width * splatterScale
+        const splatterHeight = canvas.height * splatterScale
+        const splatterX = (canvas.width - splatterWidth) / 2
+        const splatterY = (canvas.height - splatterHeight) / 2
+
+        ctx.globalAlpha = 0.5 // More visible opacity
+        ctx.drawImage(splatterImg, splatterX, splatterY, splatterWidth, splatterHeight)
+        ctx.globalAlpha = 1.0
+      } catch (error) {
+        console.error('Blood splatter positioning error:', error)
+      }
     }
 
     animationIdRef.current = requestAnimationFrame(drawFrame)
