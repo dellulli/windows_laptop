@@ -10,6 +10,7 @@ import kissImg from './assets/michonne_kiss.png'
 import bgImage from './assets/bg.png'
 import clickSound from './assets/click.mp3'
 import cameraSnapSound from './assets/camera_snap.mp3'
+import windowsOpeningSound from './assets/windows_opening.mp3'
 import musicFile from './assets/music.mp3'
 import musicFile2 from './assets/music2.mp3'
 import musicFile3 from './assets/music3.mp3'
@@ -25,6 +26,12 @@ import profilePicture from './assets/profile_picture.png'
 import windowsStartImg from './assets/windows_start.png'
 import letterboxdLogo from './assets/letterboxd_logo.png'
 import purblePalaceLogo from './assets/purble_palace.png'
+import music1Cover from './assets/music_covers/music1.jpg'
+import music2Cover from './assets/music_covers/music2.jpg'
+import music3Cover from './assets/music_covers/music3.png'
+import music4Cover from './assets/music_covers/music4.jpg'
+import music5Cover from './assets/music_covers/music5.jpg'
+import music6Cover from './assets/music_covers/music6.jpg'
 
 // Playlist data
 const PLAYLIST = [
@@ -41,11 +48,11 @@ const PLAYLIST = [
     file: musicFile3
   },
   {
-    title: 'Bojack\'s Theme',
+    title: 'I Lied To You',
     file: musicFile4
   },
   {
-    title: 'Dracula',
+    title: 'Whistle Song',
     file: musicFile5
   },
   {
@@ -54,6 +61,9 @@ const PLAYLIST = [
   }
 ]
 import './App.css'
+
+// Music cover images array
+const MUSIC_COVERS = [music1Cover, music2Cover, music3Cover, music4Cover, music5Cover, music6Cover]
 
 function App() {
   const videoRef = useRef(null)
@@ -67,6 +77,7 @@ function App() {
   const clickAudioRef = useRef(null)
   const trashAudioRef = useRef(null)
   const cameraSnapAudioRef = useRef(null)
+  const windowsOpeningAudioRef = useRef(null)
   const imageCountRef = useRef(0)
   const captureCounterRef = useRef(0)  // Tracks total captures ever made (never decreases)
   const musicSliderRef = useRef(null)
@@ -112,11 +123,11 @@ function App() {
   const [draggedImageId, setDraggedImageId] = useState(null)
   const [dragImageSource, setDragImageSource] = useState(null)
   const [dragImagePos, setDragImagePos] = useState({ x: 0, y: 0 })
-  const [kissCamPos, setKissCamPos] = useState({ x: 650, y: 30 })
-const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
-  const [musicPlayerPos, setMusicPlayerPos] = useState({ x: 1200, y: 530 })
-  const [controlsWindowPos, setControlsWindowPos] = useState({ x: 310, y: 40 })
-  const [trashPos, setTrashPos] = useState({ x: 250, y: 680 })
+  const [kissCamPos, setKissCamPos] = useState({ x: 650, y: 10 })
+const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
+  const [musicPlayerPos, setMusicPlayerPos] = useState({ x: 1200, y: 500 })
+  const [controlsWindowPos, setControlsWindowPos] = useState({ x: 310, y: 20 })
+  const [trashPos, setTrashPos] = useState({ x: 250, y: 660 })
   const [purplePalacePos, setPurplePalacePos] = useState({ x: 880, y: 550 })
   const [captureNotificationPos, setCaptureNotificationPos] = useState({ x: 400, y: 200 })
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -2258,7 +2269,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
                   playClickSound()
                   setOffsetX(-27)
                   setOffsetY(-84)
-                  setScale(0.6)
+                  setScale(0.7)
                   setRotation(0)
                 }}
                 style={{
@@ -2425,7 +2436,10 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
             gap: '4px'
           }}>
             <button
-              onClick={() => setDownloadsPage(Math.max(0, downloadsPage - 1))}
+              onClick={() => {
+                playClickSound()
+                setDownloadsPage(Math.max(0, downloadsPage - 1))
+              }}
               disabled={downloadsPage === 0}
               style={{
                 padding: '2px 6px',
@@ -2446,7 +2460,10 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
               {capturedImages.length === 0 ? 'No images' : `Page ${downloadsPage + 1}/${Math.ceil(capturedImages.length / 5)}`}
             </span>
             <button
-              onClick={() => setDownloadsPage(downloadsPage + 1)}
+              onClick={() => {
+                playClickSound()
+                setDownloadsPage(downloadsPage + 1)
+              }}
               disabled={(downloadsPage + 1) * 5 >= capturedImages.length}
               style={{
                 padding: '2px 6px',
@@ -2515,52 +2532,27 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
             padding: '15px',
             textAlign: 'center'
           }}>
+            {/* Album cover display */}
             <div style={{
               marginBottom: '15px',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              color: '#000080'
-            }}>
-              {isMusciPlaying ? 'Now Playing:' : '♪ ₊‧Music Player‧₊ ♪ '}
-            </div>
-            <div style={{
-              marginBottom: '15px',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              color: '#000080',
-              minHeight: '30px',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
+              justifyContent: 'center'
             }}>
-              {PLAYLIST[currentSongIndex].title}
-              <button
+              <img 
+                src={MUSIC_COVERS[currentSongIndex]}
+                alt={`Album ${currentSongIndex + 1}`}
+                style={{
+                  width: '80px',
+                  height: '80px',
+                  border: '2px solid #000080',
+                  cursor: 'pointer'
+                }}
                 onClick={() => {
                   playClickSound()
-                  setReplayCurrentSong(!replayCurrentSong)
+                  setShowMusicPlayer(false)
                 }}
-                style={{
-                  padding: '2px 4px',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  border: '2px outset #dfdfdf',
-                  background: replayCurrentSong ? '#ffff00' : '#000080',
-                  color: replayCurrentSong ? '#000080' : '#ffffff',
-                  fontFamily: '"MS Sans Serif", Arial, sans-serif',
-                  outline: 'none',
-                  textAlign: 'center',
-                  transition: 'all 0.1s',
-                  lineHeight: '1'
-                }}
-                title="Replay current song"
-              >
-                ↻
-              </button>
+              />
             </div>
-
-            {/* Replay button */}
 
             {/* Play/Pause and Navigation arrows */}
             <div style={{
@@ -2618,6 +2610,43 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
               </button>
             </div>
 
+            <div style={{
+              marginBottom: '15px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              color: '#000080',
+              minHeight: '30px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}>
+              {PLAYLIST[currentSongIndex].title}
+              <button
+                onClick={() => {
+                  playClickSound()
+                  setReplayCurrentSong(!replayCurrentSong)
+                }}
+                style={{
+                  padding: '2px 4px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  border: '2px outset #dfdfdf',
+                  background: replayCurrentSong ? '#ffff00' : '#000080',
+                  color: replayCurrentSong ? '#000080' : '#ffffff',
+                  fontFamily: '"MS Sans Serif", Arial, sans-serif',
+                  outline: 'none',
+                  textAlign: 'center',
+                  transition: 'all 0.1s',
+                  lineHeight: '1'
+                }}
+                title="Replay current song"
+              >
+                ↻
+              </button>
+            </div>
+
             {/* Sound Waves Animation */}
             <div style={{
               display: 'flex',
@@ -2649,7 +2678,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
 
             {/* Seekable Audio Player */}
             <div style={{
-              marginTop: '15px',
+              marginTop: '5px',
               marginBottom: '10px'
             }}>
               <input
@@ -2911,7 +2940,10 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
             gap: '4px'
           }}>
             <button
-              onClick={() => setTrashPage(Math.max(0, trashPage - 1))}
+              onClick={() => {
+                playClickSound()
+                setTrashPage(Math.max(0, trashPage - 1))
+              }}
               disabled={trashPage === 0}
               style={{
                 padding: '2px 6px',
@@ -2932,7 +2964,10 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
               {trashedImages.length === 0 ? 'No images' : `Page ${trashPage + 1}/${Math.ceil(trashedImages.length / 5)}`}
             </span>
             <button
-              onClick={() => setTrashPage(trashPage + 1)}
+              onClick={() => {
+                playClickSound()
+                setTrashPage(trashPage + 1)
+              }}
               disabled={(trashPage + 1) * 5 >= trashedImages.length}
               style={{
                 padding: '2px 6px',
@@ -4058,7 +4093,13 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
         }}
       >
         <button
-          onClick={() => setShowProfileMenu(!showProfileMenu)}
+          onClick={() => {
+            if (clickAudioRef.current) {
+              clickAudioRef.current.currentTime = 0
+              clickAudioRef.current.play().catch(err => console.log('Could not play click sound:', err))
+            }
+            setShowProfileMenu(!showProfileMenu)
+          }}
           style={{
             background: 'none',
             border: 'none',
@@ -4102,6 +4143,10 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
           >
             <button
               onClick={() => {
+                if (clickAudioRef.current) {
+                  clickAudioRef.current.currentTime = 0
+                  clickAudioRef.current.play().catch(err => console.log('Could not play click sound:', err))
+                }
                 setShowProfileMenu(false)
                 setIsLoggedIn(false)
               }}
@@ -4123,6 +4168,10 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 510 })
           </div>
         )}
       </div>
+
+      {/* Audio elements */}
+      <audio ref={clickAudioRef} src={clickSound} />
+      <audio ref={windowsOpeningAudioRef} src={windowsOpeningSound} />
     </div>
   )
 }

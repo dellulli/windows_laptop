@@ -2,13 +2,18 @@ import { useState, useRef } from 'react'
 import windowsStartBg from './assets/windows_start.png'
 import profilePicture from './assets/profile_picture.png'
 import windowsOpeningSound from './assets/windows_opening.mp3'
+import clickSound from './assets/click.mp3'
+import keyboardSound from './assets/keyboard.mp3'
 
 function LoginPage({ onLogin, onLogout }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [showLogoutMenu, setShowLogoutMenu] = useState(false)
+  const [showHint, setShowHint] = useState(false)
   const windowsAudioRef = useRef(null)
+  const clickAudioRef = useRef(null)
+  const keyboardAudioRef = useRef(null)
   const hasPlayedSound = useRef(false)
 
   // Play Windows opening sound on first page interaction
@@ -21,6 +26,16 @@ function LoginPage({ onLogin, onLogout }) {
     }
   }
 
+  // Play click sound after first interaction (but not while windows sound is playing)
+  const playClickSound = () => {
+    if (hasPlayedSound.current && clickAudioRef.current) {
+      clickAudioRef.current.currentTime = 0
+      clickAudioRef.current.play().catch((err) => {
+        console.log('Could not play click sound:', err)
+      })
+    }
+  }
+
   // Handle click anywhere on page
   const handlePageClick = (e) => {
     playWindowsSound()
@@ -29,6 +44,17 @@ function LoginPage({ onLogin, onLogout }) {
   // Handle key press for sound
   const handleKeyPress = (e) => {
     playWindowsSound()
+    playClickSound()
+  }
+
+  // Play keyboard sound when typing password
+  const playKeyboardSound = () => {
+    if (keyboardAudioRef.current) {
+      keyboardAudioRef.current.currentTime = 0
+      keyboardAudioRef.current.play().catch((err) => {
+        console.log('Could not play keyboard sound:', err)
+      })
+    }
   }
 
   const handleLogin = (e) => {
@@ -68,6 +94,8 @@ function LoginPage({ onLogin, onLogout }) {
       onClick={handlePageClick}
     >
       <audio ref={windowsAudioRef} src={windowsOpeningSound} />
+      <audio ref={clickAudioRef} src={clickSound} />
+      <audio ref={keyboardAudioRef} src={keyboardSound} />
 
       {/* Windows Version - Bottom Left */}
       <div
@@ -235,7 +263,10 @@ function LoginPage({ onLogin, onLogout }) {
 
         {/* Password Hint */}
         <button
-          onClick={() => setError('You sure you don\'t know?')}
+          onClick={() => {
+            playClickSound()
+            setShowHint(!showHint)
+          }}
           style={{
             background: 'none',
             border: 'none',
@@ -257,6 +288,21 @@ function LoginPage({ onLogin, onLogout }) {
         >
           Password hint
         </button>
+
+        {/* Hint Message */}
+        {showHint && (
+          <div
+            style={{
+              color: 'rgba(255, 255, 255, 0.8)',
+              fontSize: '13px',
+              fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+              textAlign: 'center',
+              marginTop: '8px'
+            }}
+          >
+            You sure you don't know?
+          </div>
+        )}
       </div>
 
       {/* Bottom Left Profile & Logout */}
