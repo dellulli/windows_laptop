@@ -8,6 +8,7 @@ const APP_TITLE = "Edward's Windows Laptop"
 import kissImg from './assets/michonne_kiss.png'
 import bgImage from './assets/bg.png'
 import clickSound from './assets/click.mp3'
+import cameraSnapSound from './assets/camera_snap.mp3'
 import musicFile from './assets/music.mp3'
 import musicFile2 from './assets/music2.mp3'
 import cursorImg from './assets/cursor.svg'
@@ -38,10 +39,13 @@ function App() {
   const canvasRef = useRef(null)
   const overlayImageRef = useRef(null)
   const heartFilterRef = useRef(null)
+  const bloodSplatterRef = useRef(null)
+  const borderRef = useRef(null)
   const faceLandmarkerRef = useRef(null)
   const animationIdRef = useRef(null)
   const clickAudioRef = useRef(null)
   const trashAudioRef = useRef(null)
+  const cameraSnapAudioRef = useRef(null)
   const imageCountRef = useRef(0)
   const captureCounterRef = useRef(0)  // Tracks total captures ever made (never decreases)
   const musicSliderRef = useRef(null)
@@ -50,7 +54,7 @@ function App() {
   // State for overlay positioning
   const [offsetX, setOffsetX] = useState(-27)
   const [offsetY, setOffsetY] = useState(-84)
-  const [scale, setScale] = useState(0.6)
+  const [scale, setScale] = useState(0.7)
   const [isWebcamActive, setIsWebcamActive] = useState(false)
   const [cameraError, setCameraError] = useState(null)
   const [showAbout, setShowAbout] = useState(false)
@@ -61,7 +65,11 @@ function App() {
   const [imageCount, setImageCount] = useState(0)
   const [showDownloadsFolder, setShowDownloadsFolder] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null)
+  const [selectedTrashImage, setSelectedTrashImage] = useState(null)
   const [imageToDelete, setImageToDelete] = useState(null)
+  const [downloadsPage, setDownloadsPage] = useState(0)
+  const [trashPage, setTrashPage] = useState(0)
+  const [captureNotification, setCaptureNotification] = useState(null)
   const [showMusicPlayer, setShowMusicPlayer] = useState(false)
   const [isMusciPlaying, setIsMusicPlaying] = useState(false)
   const [showKissCam, setShowKissCam] = useState(false)
@@ -69,7 +77,7 @@ function App() {
   const [trashedImages, setTrashedImages] = useState([])
   const [showTrash, setShowTrash] = useState(false)
   const [imageToDeletePermanently, setImageToDeletePermanently] = useState(null)
-  const [currentFilter, setCurrentFilter] = useState('normal')
+  const [confirmClearTrash, setConfirmClearTrash] = useState(false)
   const [sliderPosition, setSliderPosition] = useState(0)
   const [isDraggingSlider, setIsDraggingSlider] = useState(false)
   const [currentSongIndex, setCurrentSongIndex] = useState(0)
@@ -79,13 +87,41 @@ function App() {
   const [draggedImageId, setDraggedImageId] = useState(null)
   const [dragImageSource, setDragImageSource] = useState(null)
   const [dragImagePos, setDragImagePos] = useState({ x: 0, y: 0 })
-  const [kissCamPos, setKissCamPos] = useState({ x: 650, y: 70 })
-const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
-  const [musicPlayerPos, setMusicPlayerPos] = useState({ x: 1100, y: 600 })
-  const [controlsWindowPos, setControlsWindowPos] = useState({ x: 400, y: 120 })
-  const [trashPos, setTrashPos] = useState({ x: 70, y: 750 })
-  const [purplePalacePos, setPurplePalacePos] = useState({ x: 730, y: 650 })
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [kissCamPos, setKissCamPos] = useState({ x: 650, y: 30 })
+const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 480 })
+  const [musicPlayerPos, setMusicPlayerPos] = useState({ x: 1200, y: 530 })
+  const [controlsWindowPos, setControlsWindowPos] = useState({ x: 400, y: 80 })
+  const [trashPos, setTrashPos] = useState({ x: 250, y: 650 })
+  const [purplePalacePos, setPurplePalacePos] = useState({ x: 880, y: 550 })
+  const [captureNotificationPos, setCaptureNotificationPos] = useState({ x: 400, y: 200 })
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    const saved = localStorage.getItem('isLoggedIn')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [currentFilter, setCurrentFilter] = useState(() => {
+    const saved = localStorage.getItem('currentFilter')
+    return saved ? JSON.parse(saved) : 'normal'
+  })
+  const [useHeartFilter, setUseHeartFilter] = useState(() => {
+    const saved = localStorage.getItem('useHeartFilter')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [use4Grid, setUse4Grid] = useState(() => {
+    const saved = localStorage.getItem('use4Grid')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [useBloodSplatter, setUseBloodSplatter] = useState(() => {
+    const saved = localStorage.getItem('useBloodSplatter')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [currentBorder, setCurrentBorder] = useState(() => {
+    const saved = localStorage.getItem('currentBorder')
+    return saved ? JSON.parse(saved) : 'none'
+  })
+  const [showMichonneOverlay, setShowMichonneOverlay] = useState(() => {
+    const saved = localStorage.getItem('showMichonneOverlay')
+    return saved ? JSON.parse(saved) : true
+  })
   const [showProfileMenu, setShowProfileMenu] = useState(false)
 
   // Fade in animation
@@ -114,7 +150,82 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
         captureCounterRef.current = 0
       }
     }
+    // Load trashed images from localStorage
+    const savedTrashedImages = localStorage.getItem('trashedImages')
+    if (savedTrashedImages) {
+      try {
+        const trashedImgs = JSON.parse(savedTrashedImages)
+        setTrashedImages(trashedImgs)
+      } catch (error) {
+        console.error('Error loading trashed images:', error)
+      }
+    }
+    // Load window positions from localStorage
+    const savedWindowPositions = localStorage.getItem('windowPositions')
+    if (savedWindowPositions) {
+      try {
+        const positions = JSON.parse(savedWindowPositions)
+        if (positions.kissCamPos) setKissCamPos(positions.kissCamPos)
+        if (positions.downloadsPos) setDownloadsPos(positions.downloadsPos)
+        if (positions.musicPlayerPos) setMusicPlayerPos(positions.musicPlayerPos)
+        if (positions.controlsWindowPos) setControlsWindowPos(positions.controlsWindowPos)
+        if (positions.trashPos) setTrashPos(positions.trashPos)
+        if (positions.purplePalacePos) setPurplePalacePos(positions.purplePalacePos)
+        if (positions.captureNotificationPos) setCaptureNotificationPos(positions.captureNotificationPos)
+      } catch (error) {
+        console.error('Error loading window positions:', error)
+      }
+    }
   }, [])
+
+  // Persist login state to localStorage
+  useEffect(() => {
+    localStorage.setItem('isLoggedIn', JSON.stringify(isLoggedIn))
+  }, [isLoggedIn])
+
+  // Persist current filter to localStorage
+  useEffect(() => {
+    localStorage.setItem('currentFilter', JSON.stringify(currentFilter))
+  }, [currentFilter])
+
+  // Persist window positions to localStorage
+  useEffect(() => {
+    const windowPositions = {
+      kissCamPos,
+      downloadsPos,
+      musicPlayerPos,
+      controlsWindowPos,
+      trashPos,
+      purplePalacePos,
+      captureNotificationPos,
+    }
+    localStorage.setItem('windowPositions', JSON.stringify(windowPositions))
+  }, [kissCamPos, downloadsPos, musicPlayerPos, controlsWindowPos, trashPos, purplePalacePos, captureNotificationPos])
+
+  // Persist 4-grid toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('use4Grid', JSON.stringify(use4Grid))
+  }, [use4Grid])
+
+  // Persist heart filter toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('useHeartFilter', JSON.stringify(useHeartFilter))
+  }, [useHeartFilter])
+
+  // Persist blood splatter toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('useBloodSplatter', JSON.stringify(useBloodSplatter))
+  }, [useBloodSplatter])
+
+  // Persist current border to localStorage
+  useEffect(() => {
+    localStorage.setItem('currentBorder', JSON.stringify(currentBorder))
+  }, [currentBorder])
+
+  // Persist michonne overlay toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('showMichonneOverlay', JSON.stringify(showMichonneOverlay))
+  }, [showMichonneOverlay])
 
   // Keep imageCountRef in sync with imageCount state
   useEffect(() => {
@@ -155,7 +266,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
               'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
           },
           runningMode: 'VIDEO',
-          numFaces: 1,
+          numFaces: 10,
         })
 
         faceLandmarkerRef.current = faceLandmarker
@@ -264,7 +375,40 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
     preloadImage(bgImage)
     preloadImage(letterboxdLogo)
     preloadImage(purblePalaceLogo)
-  }, [])
+
+    // Load blood splatter
+    const splatterImg = new Image()
+    splatterImg.src = '/assets/Blood_Splatter.png'
+    splatterImg.onload = () => {
+      bloodSplatterRef.current = splatterImg
+    }
+    splatterImg.onerror = () => {
+      console.error('Failed to load blood splatter image')
+    }
+
+    // Load border if selected
+    if (currentBorder !== 'none') {
+      // Clear old border reference to prevent glitch during transition
+      borderRef.current = null
+      
+      const borderMap = {
+        film_frame: '/assets/film_frame.png',
+        filter_border: '/assets/filter_border.png',
+        katana_border: '/assets/katana_border.png'
+      }
+      const borderImg = new Image()
+      borderImg.src = borderMap[currentBorder]
+      borderImg.onload = () => {
+        borderRef.current = borderImg
+      }
+      borderImg.onerror = () => {
+        console.error(`Failed to load border image: ${currentBorder}`)
+      }
+    } else {
+      // Clear border reference when 'none' is selected
+      borderRef.current = null
+    }
+  }, [currentBorder])
 
   // Start webcam
   const startWebcam = async () => {
@@ -310,6 +454,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject
       stream.getTracks().forEach((track) => track.stop())
+      videoRef.current.srcObject = null  // Release the stream completely
       setIsWebcamActive(false)
     }
     if (animationIdRef.current) {
@@ -396,23 +541,29 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
       canvas.height = video.videoHeight
     }
 
-    // Draw video frame (mirrored for webcam effect)
+    // Always draw single frame first (video + overlays)
+    // Normal single frame (mirrored for webcam effect)
     ctx.save()
     ctx.scale(-1, 1)
     ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height)
     ctx.restore()
 
-    // Run face detection
+    // Run face detection on the full video
+    let topHeadLandmark = null
+    let allFaceLandmarks = null
+    let allDetectedFaces = []
     try {
       const results = faceLandmarkerRef.current.detectForVideo(video, Date.now())
 
       if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+        allDetectedFaces = results.faceLandmarks
         const landmarks = results.faceLandmarks[0]
+        allFaceLandmarks = landmarks
 
         // Get left jawline position for michonne
         const cheekLandmark = landmarks[LEFT_JAWLINE_INDEX]
         // Get top of head position (using landmark 10 which is typically top of head)
-        const topHeadLandmark = landmarks[10]
+        topHeadLandmark = landmarks[10]
 
         if (cheekLandmark) {
           const { pixelX, pixelY } = normalizedToCanvasCoordinates(
@@ -422,11 +573,38 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
             canvas.height
           )
 
-          // Always draw michonne_kiss.png at cheek position
-          if (overlayImageRef.current) {
+          // Draw michonne_kiss.png at cheek position if enabled
+          if (showMichonneOverlay && overlayImageRef.current) {
             const img = overlayImageRef.current
-            const scaledWidth = img.width * scale
-            const scaledHeight = img.height * scale
+            
+            // Calculate dynamic scale based on face size (proximity to camera)
+            // Use distance between eyes as a proxy for face size
+            const leftEye = landmarks[33]  // Left eye landmark
+            const rightEye = landmarks[263] // Right eye landmark
+            
+            let dynamicScale = scale
+            if (leftEye && rightEye) {
+              // Calculate eye distance in normalized coordinates
+              const eyeDistance = Math.sqrt(
+                Math.pow(rightEye.x - leftEye.x, 2) + 
+                Math.pow(rightEye.y - leftEye.y, 2)
+              )
+              
+              // Reference eye distance at default zoom (around 0.15 in normalized coords)
+              const referenceEyeDistance = 0.15
+              
+              // Scale michonne proportionally to how close the user is
+              // If eyes are closer together (zoomed in), face is further, scale down
+              // If eyes are further apart (zoomed out), face is closer, scale up
+              const proximityRatio = eyeDistance / referenceEyeDistance
+              dynamicScale = scale * proximityRatio
+              
+              // Clamp scale between 0.3 and 1.5 to prevent extreme values
+              dynamicScale = Math.max(0.3, Math.min(1.5, dynamicScale))
+            }
+            
+            const scaledWidth = img.width * dynamicScale
+            const scaledHeight = img.height * dynamicScale
 
             const drawX = pixelX + 40 + offsetX
             const drawY = pixelY + 60 - scaledHeight / 2 + offsetY
@@ -445,39 +623,6 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
             ctx.restore()
             ctx.globalAlpha = 1.0
           }
-        }
-
-        // Draw heart filter above head if selected
-        if (currentFilter === 'heart' && topHeadLandmark && heartFilterRef.current) {
-          const { pixelX: headX, pixelY: headY } = normalizedToCanvasCoordinates(
-            topHeadLandmark.x,
-            topHeadLandmark.y,
-            canvas.width,
-            canvas.height
-          )
-
-          const heartImg = heartFilterRef.current
-          const heartScale = scale * 0.3
-          const heartWidth = heartImg.width * heartScale
-          const heartHeight = heartImg.height * heartScale
-
-          // Position above head
-          const heartX = headX - heartWidth / 2
-          const heartY = headY - heartHeight - 20
-
-          ctx.globalAlpha = 1
-          ctx.save()
-          ctx.translate(heartX + heartWidth / 2, heartY + heartHeight / 2)
-          ctx.scale(-1, 1)
-          ctx.drawImage(
-            heartImg,
-            -heartWidth / 2,
-            -heartHeight / 2,
-            heartWidth,
-            heartHeight
-          )
-          ctx.restore()
-          ctx.globalAlpha = 1.0
         }
       }
     } catch (error) {
@@ -501,6 +646,192 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
     frameCounterRef.current++
     addGrainTexture(canvas, ctx, 0.12, frameCounterRef.current)
 
+    // Draw heart filter AFTER black & white and grain so it stays colored and on top
+    // Apply to all detected faces
+    if (useHeartFilter && heartFilterRef.current && allDetectedFaces.length > 0) {
+      try {
+        console.log(`Drawing hearts on ${allDetectedFaces.length} faces`)
+        allDetectedFaces.forEach((faceLandmarks, faceIndex) => {
+          const topHead = faceLandmarks[10] // Top of head
+          const leftEye = faceLandmarks[33]  // Left eye landmark
+          const rightEye = faceLandmarks[263] // Right eye landmark
+          
+          if (!topHead) {
+            console.log(`Face ${faceIndex}: Missing topHead landmark`)
+            return
+          }
+          
+          const { pixelX: headX, pixelY: headY } = normalizedToCanvasCoordinates(
+            topHead.x,
+            topHead.y,
+            canvas.width,
+            canvas.height
+          )
+
+          // Calculate dynamic scale based on face size (proximity to camera)
+          let dynamicScale = scale * 0.3
+          if (leftEye && rightEye) {
+            const eyeDistance = Math.sqrt(
+              Math.pow(rightEye.x - leftEye.x, 2) + 
+              Math.pow(rightEye.y - leftEye.y, 2)
+            )
+            const referenceEyeDistance = 0.15
+            const proximityRatio = eyeDistance / referenceEyeDistance
+            dynamicScale = scale * 0.3 * proximityRatio
+            dynamicScale = Math.max(0.15, Math.min(0.6, dynamicScale))
+          }
+
+          const heartImg = heartFilterRef.current
+          const heartWidth = heartImg.width * dynamicScale
+          const heartHeight = heartImg.height * dynamicScale
+
+          // Position above head
+          const heartX = headX - heartWidth / 2
+          const heartY = headY - heartHeight - 20
+
+          console.log(`Drawing heart ${faceIndex} at (${headX}, ${headY})`)
+          ctx.save()
+          ctx.globalAlpha = 1
+          ctx.drawImage(
+            heartImg,
+            heartX,
+            heartY,
+            heartWidth,
+            heartHeight
+          )
+          ctx.restore()
+        })
+      } catch (error) {
+        console.error('Heart filter rendering error:', error)
+      }
+    }
+
+    // Draw blood splatter overlay if enabled (mapped to center of face)
+    // Apply to all detected faces
+    if (useBloodSplatter && bloodSplatterRef.current && allDetectedFaces.length > 0) {
+      try {
+        allDetectedFaces.forEach((faceLandmarks) => {
+          const noseLandmark = faceLandmarks[4] // Nose tip (center of face)
+          const leftEye = faceLandmarks[33]  // Left eye landmark
+          const rightEye = faceLandmarks[263] // Right eye landmark
+          
+          if (!noseLandmark) return
+          
+          const { pixelX: centerX, pixelY: centerY } = normalizedToCanvasCoordinates(
+            noseLandmark.x,
+            noseLandmark.y,
+            canvas.width,
+            canvas.height
+          )
+
+          // Calculate dynamic scale based on face size (proximity to camera)
+          let dynamicScale = scale * 1.5
+          if (leftEye && rightEye) {
+            const eyeDistance = Math.sqrt(
+              Math.pow(rightEye.x - leftEye.x, 2) + 
+              Math.pow(rightEye.y - leftEye.y, 2)
+            )
+            const referenceEyeDistance = 0.15
+            const proximityRatio = eyeDistance / referenceEyeDistance
+            dynamicScale = scale * 1.5 * proximityRatio
+            dynamicScale = Math.max(0.8, Math.min(2.5, dynamicScale))
+          }
+
+          const splatterImg = bloodSplatterRef.current
+          const splatterWidth = splatterImg.width * dynamicScale
+          const splatterHeight = splatterImg.height * dynamicScale
+          const splatterX = centerX - splatterWidth / 2 - 10 + offsetX // More to the right
+          const splatterY = centerY - splatterHeight / 2 + 80 + offsetY // Lower
+
+          ctx.globalAlpha = 0.7 // Darker/less bright
+          ctx.drawImage(splatterImg, splatterX, splatterY, splatterWidth, splatterHeight)
+          ctx.globalAlpha = 1.0
+        })
+      } catch (error) {
+        console.error('Blood splatter positioning error:', error)
+      }
+    }
+
+    // Draw border overlay if one is selected (rendered after michonne_kiss for higher z-index)
+    if (currentBorder !== 'none' && borderRef.current) {
+      const borderImg = borderRef.current
+      let borderScale = 1 // Full canvas size by default
+      let borderOpacity = 1 // Default opacity
+      
+      // Make film_frame larger and reduce opacity
+      if (currentBorder === 'film_frame') {
+        borderScale = 1
+        borderOpacity = 0.8 // Reduced opacity for film_frame
+      }
+      if (currentBorder === 'filter_border') {
+        borderScale = 1.25
+        borderOpacity = 1 // Reduced opacity for film_frame
+      }
+      
+      const borderWidth = canvas.width * borderScale
+      const borderHeight = canvas.height * borderScale
+      const borderX = (canvas.width - borderWidth) / 2
+      const borderY = (canvas.height - borderHeight) / 2
+
+      ctx.globalAlpha = borderOpacity
+      ctx.drawImage(borderImg, borderX, borderY, borderWidth, borderHeight)
+      ctx.globalAlpha = 1.0
+    }
+
+    // If 4-grid mode: create a temporary canvas with the single frame, then tile it 4 times
+    if (use4Grid) {
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = canvas.width
+      tempCanvas.height = canvas.height
+      const tempCtx = tempCanvas.getContext('2d')
+      
+      // Copy current canvas to temp canvas
+      tempCtx.drawImage(canvas, 0, 0)
+      
+      // Clear main canvas and draw the single frame 4 times in a 2x2 grid
+      ctx.fillStyle = '#000000'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      
+      const quarterWidth = canvas.width / 2
+      const quarterHeight = canvas.height / 2
+      
+      // Draw to all 4 quadrants
+      ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height, 0, 0, quarterWidth, quarterHeight)
+      ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height, quarterWidth, 0, quarterWidth, quarterHeight)
+      ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height, 0, quarterHeight, quarterWidth, quarterHeight)
+      ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height, quarterWidth, quarterHeight, quarterWidth, quarterHeight)
+      
+      // Draw Windows-style thick beveled frame to separate quadrants
+      const frameWidth = 20
+      
+      // Draw vertical divider (thick beveled)
+      // Light side
+      ctx.fillStyle = '#dfdfdf'
+      ctx.fillRect(quarterWidth - frameWidth / 2, 0, frameWidth / 2, canvas.height)
+      // Dark side
+      ctx.fillStyle = '#808080'
+      ctx.fillRect(quarterWidth, 0, frameWidth / 2, canvas.height)
+      
+      // Draw horizontal divider (thick beveled)
+      // Light side
+      ctx.fillStyle = '#dfdfdf'
+      ctx.fillRect(0, quarterHeight - frameWidth / 2, canvas.width, frameWidth / 2)
+      // Dark side
+      ctx.fillStyle = '#808080'
+      ctx.fillRect(0, quarterHeight, canvas.width, frameWidth / 2)
+      
+      // Draw outer frame beveled border
+      // Top-left light beveled edge
+      ctx.fillStyle = '#dfdfdf'
+      ctx.fillRect(0, 0, canvas.width, frameWidth / 2)
+      ctx.fillRect(0, 0, frameWidth / 2, canvas.height)
+      
+      // Bottom-right dark beveled edge
+      ctx.fillStyle = '#808080'
+      ctx.fillRect(0, canvas.height - frameWidth / 2, canvas.width, frameWidth / 2)
+      ctx.fillRect(canvas.width - frameWidth / 2, 0, frameWidth / 2, canvas.height)
+    }
+
     animationIdRef.current = requestAnimationFrame(drawFrame)
   }
 
@@ -515,60 +846,100 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
         cancelAnimationFrame(animationIdRef.current)
       }
     }
-  }, [isWebcamActive, offsetX, offsetY, scale, currentFilter])
+  }, [isWebcamActive, offsetX, offsetY, scale, currentFilter, use4Grid, useHeartFilter, useBloodSplatter, currentBorder, showMichonneOverlay])
 
-  // Capture and save canvas as image to local memory
-  const capturePhoto = () => {
-    playClickSound()
-    if (canvasRef.current) {
-      canvasRef.current.toBlob((blob) => {
+  // Compress canvas to JPEG for smaller file size
+  const compressCanvasToJpeg = (canvas, quality = 0.7) => {
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
         if (!blob) {
           console.error('Failed to create blob from canvas')
+          resolve(null)
           return
         }
         
         const reader = new FileReader()
         reader.onload = (e) => {
-          const dataUrl = e.target.result
-          // Increment capture counter
-          captureCounterRef.current += 1
-          localStorage.setItem('captureCounter', captureCounterRef.current.toString())
-          
-          const newImage = {
-            id: Date.now(),
-            dataUrl: dataUrl,
-            timestamp: new Date().toLocaleString(),
-            name: `michonne_kisses_${captureCounterRef.current}`
-          }
-          
-          // Get the latest images from localStorage
-          const savedImages = localStorage.getItem('capturedImages')
-          const allImages = savedImages ? JSON.parse(savedImages) : []
-          const updatedImages = [newImage, ...allImages]
-          
-          setCapturedImages(updatedImages)
-          setImageCount(updatedImages.length)
-          localStorage.setItem('capturedImages', JSON.stringify(updatedImages))
-          console.log('Image saved! Total images:', updatedImages.length)
+          resolve(e.target.result)
         }
-        reader.onerror = (error) => {
-          console.error('FileReader error:', error)
+        reader.onerror = () => {
+          console.error('FileReader error')
+          resolve(null)
         }
         reader.readAsDataURL(blob)
-        
-        // Also download the image to browser downloads
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `michonne_kisses_${captureCounterRef.current}.png`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-        console.log('Image downloaded to browser')
-      }, 'image/png')
-    } else {
+      }, 'image/jpeg', quality)
+    })
+  }
+
+  // Capture and save canvas as image to local memory
+  const capturePhoto = async () => {
+    if (!canvasRef.current) {
       console.error('Canvas ref not available')
+      return
+    }
+
+    // Play camera snap sound immediately
+    if (cameraSnapAudioRef.current) {
+      cameraSnapAudioRef.current.currentTime = 0
+      cameraSnapAudioRef.current.play().catch((error) => {
+        console.log('Could not play camera snap sound:', error)
+      })
+    }
+
+    // Show capture notification immediately for instant feedback
+    setCaptureNotification(true)
+    setTimeout(() => setCaptureNotification(false), 2000)
+
+    // Increment capture counter immediately
+    captureCounterRef.current += 1
+    localStorage.setItem('captureCounter', captureCounterRef.current.toString())
+
+    // Compress image in background (non-blocking)
+    try {
+      const dataUrl = await compressCanvasToJpeg(canvasRef.current, 0.75)
+      
+      if (!dataUrl) {
+        console.error('Failed to compress image')
+        return
+      }
+
+      const newImage = {
+        id: Date.now(),
+        dataUrl: dataUrl,
+        timestamp: new Date().toLocaleString(),
+        name: `michonne_kisses_${captureCounterRef.current}`
+      }
+      
+      // Get the latest images from localStorage
+      const savedImages = localStorage.getItem('capturedImages')
+      const allImages = savedImages ? JSON.parse(savedImages) : []
+      const updatedImages = [newImage, ...allImages]
+      
+      try {
+        localStorage.setItem('capturedImages', JSON.stringify(updatedImages))
+        console.log('Image saved! Total images:', updatedImages.length)
+        console.log('Compressed size:', (dataUrl.length / 1024).toFixed(1), 'KB')
+      } catch (e) {
+        if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+          console.warn('LocalStorage quota exceeded! Keeping only newest 5 images...')
+          // Keep only the 5 most recent images
+          const recentImages = updatedImages.slice(0, 5)
+          try {
+            localStorage.setItem('capturedImages', JSON.stringify(recentImages))
+            setCapturedImages(recentImages)
+            setImageCount(recentImages.length)
+            console.log('Trimmed to 5 most recent images')
+          } catch (e2) {
+            console.error('Still unable to save:', e2)
+          }
+          return
+        }
+      }
+      
+      setCapturedImages(updatedImages)
+      setImageCount(updatedImages.length)
+    } catch (error) {
+      console.error('Error during capture:', error)
     }
   }
 
@@ -615,7 +986,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
   const handleCloseDownloads = () => {
     playClickSound()
     setShowDownloadsFolder(false)
-    setSelectedImage(null)
+    // Don't close the image modal - they're independent
   }
 
   // Handle delete image
@@ -627,13 +998,38 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
   // Confirm delete image
   const confirmDeleteImage = () => {
     playClickSound()
-    const updatedImages = capturedImages.filter((img) => img.id !== imageToDelete)
+
+    // Find index BEFORE removing
+    const deletedIndex = capturedImages.findIndex(
+      (img) => img.id === imageToDelete
+    )
+
+    // Create new array without deleted image
+    const updatedImages = capturedImages.filter(
+      (img) => img.id !== imageToDelete
+    )
+
     setCapturedImages(updatedImages)
     localStorage.setItem('capturedImages', JSON.stringify(updatedImages))
-    setImageToDelete(null)
-    if (selectedImage?.id === imageToDelete) {
+
+    // Handle modal image switching
+    if (updatedImages.length > 0) {
+      // Prefer next image, fallback to previous
+      const nextIndex =
+        deletedIndex < updatedImages.length
+          ? deletedIndex
+          : updatedImages.length - 1
+
+      setSelectedImage(updatedImages[nextIndex])
+    } else {
+      // No images left → close modal
       setSelectedImage(null)
     }
+
+    // Close confirmation dialog only
+    setImageToDelete(null)
+    setDownloadsPage(0)
+
     console.log('Image deleted! Remaining:', updatedImages.length)
   }
 
@@ -743,12 +1139,27 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
           console.log('Could not play trash sound:', error)
         })
       }
-      setTrashedImages([...trashedImages, imageToMove])
+      const updatedTrash = [...trashedImages, imageToMove]
+      setTrashedImages(updatedTrash)
+      localStorage.setItem('trashedImages', JSON.stringify(updatedTrash))
+      
       const updatedImages = capturedImages.filter((img) => img.id !== imageId)
       setCapturedImages(updatedImages)
       localStorage.setItem('capturedImages', JSON.stringify(updatedImages))
+      
+      // If the moved image was selected, transition to next image instead of closing modal
       if (selectedImage?.id === imageId) {
-        setSelectedImage(null)
+        if (updatedImages.length > 0) {
+          const movedIndex = capturedImages.findIndex((img) => img.id === imageId)
+          const nextIndex = 
+            movedIndex < updatedImages.length 
+              ? movedIndex 
+              : updatedImages.length - 1
+          setSelectedImage(updatedImages[nextIndex])
+        } else {
+          // No images left, close modal
+          setSelectedImage(null)
+        }
       }
     }
   }
@@ -758,25 +1169,104 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
     playClickSound()
     const imageToRestore = trashedImages.find((img) => img.id === imageId)
     if (imageToRestore) {
-      setCapturedImages([imageToRestore, ...capturedImages])
+      // Find index BEFORE removing (from original array)
+      const restoredIndex = trashedImages.findIndex((img) => img.id === imageId)
+      
+      // Ensure all properties are preserved, especially the name
+      const restoredImage = { ...imageToRestore }
+      const updatedCaptured = [restoredImage, ...capturedImages]
       const updatedTrash = trashedImages.filter((img) => img.id !== imageId)
+      
+      setCapturedImages(updatedCaptured)
+      setDownloadsPage(0)
+      localStorage.setItem('capturedImages', JSON.stringify(updatedCaptured))
+      localStorage.setItem('trashedImages', JSON.stringify(updatedTrash))
+      
+      // Keep modal open and switch to next trash image
+      if (updatedTrash.length > 0) {
+        const nextIndex = 
+          restoredIndex < updatedTrash.length 
+            ? restoredIndex 
+            : updatedTrash.length - 1
+        setSelectedTrashImage(updatedTrash[nextIndex])
+      } else {
+        // Only close modal when no images left
+        setSelectedTrashImage(null)
+      }
+      
       setTrashedImages(updatedTrash)
-      localStorage.setItem('capturedImages', JSON.stringify([imageToRestore, ...capturedImages]))
     }
   }
 
   // Permanently delete from trash
   const confirmPermanentDeleteImage = () => {
     playClickSound()
-    const updatedTrash = trashedImages.filter((img) => img.id !== imageToDeletePermanently)
+    if (trashAudioRef.current) {
+      trashAudioRef.current.currentTime = 0
+      trashAudioRef.current.volume = 1.0
+      trashAudioRef.current.playbackRate = 1.5
+      trashAudioRef.current.play().catch((error) => {
+        console.log('Could not play trash sound:', error)
+      })
+    }
+    
+    // Find index BEFORE removing (from original array)
+    const deletedIndex = trashedImages.findIndex(
+      (img) => img.id === imageToDeletePermanently
+    )
+    
+    // Create new array without deleted image
+    const updatedTrash = trashedImages.filter(
+      (img) => img.id !== imageToDeletePermanently
+    )
+    
+    // Keep modal open and switch to next trash image if available
+    if (updatedTrash.length > 0) {
+      const nextIndex =
+        deletedIndex < updatedTrash.length
+          ? deletedIndex
+          : updatedTrash.length - 1
+      setSelectedTrashImage(updatedTrash[nextIndex])
+    } else {
+      // Only close modal when no images left
+      setSelectedTrashImage(null)
+    }
+    
+    // Update state + storage
     setTrashedImages(updatedTrash)
+    localStorage.setItem('trashedImages', JSON.stringify(updatedTrash))
+    
+    // Close confirmation dialog only
     setImageToDeletePermanently(null)
+    setTrashPage(0)
   }
 
   // Cancel permanent delete
   const cancelPermanentDeleteImage = () => {
     playClickSound()
     setImageToDeletePermanently(null)
+  }
+
+  // Clear all trash
+  const clearAllTrash = () => {
+    playClickSound()
+    if (trashAudioRef.current) {
+      trashAudioRef.current.currentTime = 0
+      trashAudioRef.current.volume = 1.0
+      trashAudioRef.current.playbackRate = 1.5
+      trashAudioRef.current.play().catch(() => {})
+    }
+    setTrashedImages([])
+    setSelectedTrashImage(null)
+    setTrashPage(0)
+    localStorage.setItem('trashedImages', JSON.stringify([]))
+    setConfirmClearTrash(false)
+  }
+
+  // Cancel clear trash
+  const cancelClearTrash = () => {
+    playClickSound()
+    setConfirmClearTrash(false)
   }
 
   // Handle window dragging
@@ -812,6 +1302,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
           setTrashPos({ x: newX, y: newY })
         } else if (dragState.window === 'purplePalace') {
           setPurplePalacePos({ x: newX, y: newY })
+        } else if (dragState.window === 'notification') {
+          setCaptureNotificationPos({ x: newX, y: newY })
         }
       } else if (draggedImageId) {
         setDragImagePos({ x: e.clientX - 30, y: e.clientY - 30 })
@@ -904,6 +1396,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
       cursor: `url(${cursorImg}) 4 12, auto`
     }}>
       <audio ref={clickAudioRef} src={clickSound} />
+      <audio ref={cameraSnapAudioRef} src={cameraSnapSound} />
       <audio ref={bgMusicRef} src={PLAYLIST[currentSongIndex].file} loop />
       <audio ref={trashAudioRef} src={trashSound} />
 
@@ -1144,6 +1637,33 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
         </div>
       ) : null}
 
+      {/* Capture Notification Toast */}
+      {captureNotification && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: `${captureNotificationPos.y}px`,
+            right: 'auto',
+            left: `${captureNotificationPos.x}px`,
+            backgroundColor: '#000080',
+            color: '#ffff00',
+            padding: '12px 20px',
+            borderRadius: '4px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            zIndex: 9999,
+            border: '2px solid #ffff00',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+            animation: 'slideIn 0.3s ease-in-out',
+            cursor: dragState?.window === 'notification' ? 'grabbing' : 'grab',
+            userSelect: 'none'
+          }}
+          onMouseDown={(e) => handleMouseDown(e, 'notification', captureNotificationPos)}
+        >
+          ✓ Image Captured!
+        </div>
+      )}
+
       {/* Kiss Cam Modal */}
       {showKissCam && (
         <animated.div style={{
@@ -1167,7 +1687,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
                 borderBottom: dragState?.window === 'kissCam' ? '2px solid #ffffff' : 'none'
               }}
             >
-              <h1>💋 Michonne's Kiss Cam</h1>
+              <h1>💋 Kiss Cam</h1>
               <button 
                 onClick={handleCloseKissCam}
                 style={{
@@ -1259,25 +1779,186 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
                   >
                     B&W
                   </button>
-                  <button
-                    onClick={() => {
-                      playClickSound()
-                      setCurrentFilter('heart')
-                    }}
-                    style={{
-                      padding: '6px 12px',
-                      backgroundColor: currentFilter === 'heart' ? '#dd1c73' : '#c0c0c0',
-                      color: currentFilter === 'heart' ? 'white' : 'black',
-                      border: '1px solid',
-                      borderColor: currentFilter === 'heart' ? '#dd1c73' : '#dfdfdf #808080 #808080 #dfdfdf',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      outline: 'none'
-                    }}
-                  >
-                    ♥ Heart
-                  </button>
+
+                  {/* Heart Filter Toggle Checkbox */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '8px',
+                    paddingTop: '8px',
+                    borderTop: '1px solid #808080'
+                  }}>
+                    <input
+                      type="checkbox"
+                      id="heartToggle"
+                      checked={useHeartFilter}
+                      onChange={(e) => {
+                        playClickSound()
+                        setUseHeartFilter(e.target.checked)
+                      }}
+                      style={{
+                        cursor: 'pointer',
+                        width: '14px',
+                        height: '14px'
+                      }}
+                    />
+                    <label
+                      htmlFor="heartToggle"
+                      style={{
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      Hearts ♥
+                    </label>
+                  </div>
+
+                  {/* 4 Grid Toggle Checkbox */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '8px'
+                  }}>
+                    <input
+                      type="checkbox"
+                      id="fourGridToggle"
+                      checked={use4Grid}
+                      onChange={(e) => {
+                        playClickSound()
+                        setUse4Grid(e.target.checked)
+                      }}
+                      style={{
+                        cursor: 'pointer',
+                        width: '14px',
+                        height: '14px'
+                      }}
+                    />
+                    <label
+                      htmlFor="fourGridToggle"
+                      style={{
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}
+                    >
+                      4 Grid View
+                    </label>
+                  </div>
+
+                  {/* Blood Splatter Toggle */}
+                  <div style={{ marginTop: '10px' }}>
+                    <input
+                      type="checkbox"
+                      id="bloodSplatterToggle"
+                      checked={useBloodSplatter}
+                      onChange={(e) => {
+                        setUseBloodSplatter(e.target.checked)
+                        playClickSound()
+                      }}
+                      style={{
+                        cursor: 'pointer',
+                        width: '14px',
+                        height: '14px'
+                      }}
+                    />
+                    <label
+                      htmlFor="bloodSplatterToggle"
+                      style={{
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        marginLeft: '5px'
+                      }}
+                    >
+                      Blood 
+                    </label>
+                  </div>
+
+                  {/* Border Selection */}
+                  <div style={{ marginTop: '10px' }}>
+                    <div style={{ fontSize: '11px', marginBottom: '5px' }}>Borders:</div>
+                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                      <button
+                        onClick={() => {
+                          const options = ['none', 'film_frame', 'filter_border', 'katana_border']
+                          const currentIndex = options.indexOf(currentBorder)
+                          const newIndex = (currentIndex - 1 + options.length) % options.length
+                          setCurrentBorder(options[newIndex])
+                          playClickSound()
+                        }}
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          padding: '0',
+                          fontSize: '10px',
+                          cursor: 'pointer',
+                          backgroundColor: '#c0c0c0',
+                          border: '2px solid',
+                          borderColor: '#dfdfdf #808080 #808080 #dfdfdf'
+                        }}
+                      >
+                        &lt;
+                      </button>
+                      <span style={{ fontSize: '11px', minWidth: '60px', textAlign: 'center' }}>
+                        {currentBorder === 'none' ? 'None' :
+                         currentBorder === 'film_frame' ? 'Film' :
+                         currentBorder === 'filter_border' ? 'Waifus' : 'Katana'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const options = ['none', 'film_frame', 'filter_border', 'katana_border']
+                          const currentIndex = options.indexOf(currentBorder)
+                          const newIndex = (currentIndex + 1) % options.length
+                          setCurrentBorder(options[newIndex])
+                          playClickSound()
+                        }}
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          padding: '0',
+                          fontSize: '10px',
+                          cursor: 'pointer',
+                          backgroundColor: '#c0c0c0',
+                          border: '2px solid',
+                          borderColor: '#dfdfdf #808080 #808080 #dfdfdf'
+                        }}
+                      >
+                        &gt;
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Michonne Overlay Toggle */}
+                  <div style={{ marginTop: '10px' }}>
+                    <input
+                      type="checkbox"
+                      id="michonneToggle"
+                      checked={showMichonneOverlay}
+                      onChange={(e) => {
+                        setShowMichonneOverlay(e.target.checked)
+                        playClickSound()
+                      }}
+                      style={{
+                        cursor: 'pointer',
+                        width: '14px',
+                        height: '14px'
+                      }}
+                    />
+                    <label
+                      htmlFor="michonneToggle"
+                      style={{
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        marginLeft: '5px'
+                      }}
+                    >
+                      Michonne Overlay
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -1300,7 +1981,16 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
                   onClick={startWebcam}
                   disabled={isWebcamActive}
                   className="btn btn-primary"
-                  style={{ outline: 'none', color: '#000080', fontWeight: 'bold' }}
+                  style={{
+                    outline: 'none',
+                    color: isWebcamActive ? '#888888' : '#000080',
+                    fontWeight: 'bold',
+                    opacity: isWebcamActive ? 0.5 : 1,
+                    cursor: isWebcamActive ? 'not-allowed' : 'pointer',
+                    backgroundColor: isWebcamActive ? '#d0d0d0' : '#c0c0c0',
+                    border: '2px solid',
+                    borderColor: isWebcamActive ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf'
+                  }}
                 >
                   ▶ Start
                 </button>
@@ -1308,7 +1998,16 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
                   onClick={stopWebcam}
                   disabled={!isWebcamActive}
                   className="btn btn-secondary"
-                  style={{ outline: 'none', color: '#000080', fontWeight: 'bold' }}
+                  style={{
+                    outline: 'none',
+                    color: !isWebcamActive ? '#888888' : '#000080',
+                    fontWeight: 'bold',
+                    opacity: !isWebcamActive ? 0.5 : 1,
+                    cursor: !isWebcamActive ? 'not-allowed' : 'pointer',
+                    backgroundColor: !isWebcamActive ? '#d0d0d0' : '#c0c0c0',
+                    border: '2px solid',
+                    borderColor: !isWebcamActive ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf'
+                  }}
                 >
                   ■ Stop
                 </button>
@@ -1316,7 +2015,16 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
                   onClick={capturePhoto}
                   disabled={!isWebcamActive}
                   className="btn btn-capture"
-                  style={{ outline: 'none', color: '#000080', fontWeight: 'bold' }}
+                  style={{
+                    outline: 'none',
+                    color: !isWebcamActive ? '#888888' : '#000080',
+                    fontWeight: 'bold',
+                    opacity: !isWebcamActive ? 0.5 : 1,
+                    cursor: !isWebcamActive ? 'not-allowed' : 'pointer',
+                    backgroundColor: !isWebcamActive ? '#d0d0d0' : '#c0c0c0',
+                    border: '2px solid',
+                    borderColor: !isWebcamActive ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf'
+                  }}
                 >
                   ● Capture
                 </button>
@@ -1334,7 +2042,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
             </div>
 
             <div className="statusbar">
-              <div className="left">Michonne Kiss Cam</div>
+              <div className="left">Michonne's Kiss Cam</div>
               <div className="right">&nbsp;</div>
             </div>
           </div>
@@ -1540,81 +2248,125 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
             alignContent: 'flex-start',
             gap: '10px'
           }}>
-            {capturedImages.map((image) => (
-              <div
-                key={image.id}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '4px',
-                  minWidth: '70px',
-                  textAlign: 'center',
-                  borderRadius: '2px',
-                  transition: 'background 0.1s',
-                  position: 'relative'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#000080'
-                  e.currentTarget.style.color = 'white'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.color = 'black'
-                }}
-              >
+            {(() => {
+              const itemsPerPage = 5
+              const startIdx = downloadsPage * itemsPerPage
+              const endIdx = startIdx + itemsPerPage
+              const pageImages = capturedImages.slice(startIdx, endIdx)
+              
+              return pageImages.map((image) => (
                 <div
-                  onMouseDown={(e) => {
-                    if (e.button === 0) {
-                      setDraggedImageId(image.id)
-                      setDragImageSource('downloads')
-                      setDragImagePos({ x: e.clientX - 30, y: e.clientY - 30 })
-                    }
-                  }}
-                  onClick={() => {
-                    playClickSound()
-                    setSelectedImage(image)
-                  }}
+                  key={image.id}
                   style={{
-                    cursor: 'grab',
-                    position: 'relative',
-                    userSelect: 'none'
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px',
+                    minWidth: '70px',
+                    textAlign: 'center',
+                    borderRadius: '2px',
+                    transition: 'background 0.1s',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#000080'
+                    e.currentTarget.style.color = 'white'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.color = 'black'
                   }}
                 >
-                  <img 
-                    src={image.dataUrl} 
-                    alt={`Capture ${image.id}`}
-                    style={{
-                      width: '60px',
-                      height: '60px',
-                      objectFit: 'cover',
-                      border: '1px solid #808080'
+                  <div
+                    onMouseDown={(e) => {
+                      if (e.button === 0) {
+                        setDraggedImageId(image.id)
+                        setDragImageSource('downloads')
+                        setDragImagePos({ x: e.clientX - 30, y: e.clientY - 30 })
+                      }
                     }}
-                  />
+                    onClick={() => {
+                      playClickSound()
+                      setSelectedImage(image)
+                    }}
+                    style={{
+                      cursor: 'grab',
+                      position: 'relative',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <img 
+                      src={image.dataUrl} 
+                      alt={`Capture ${image.id}`}
+                      style={{
+                        width: '60px',
+                        height: '60px',
+                        objectFit: 'cover',
+                        border: '1px solid #808080'
+                      }}
+                    />
+                  </div>
+                  <div style={{
+                    fontSize: '10px',
+                    fontFamily: 'Arial, sans-serif',
+                    wordBreak: 'break-all'
+                  }}>
+                    {image.name || `kiss_${image.id}`}
+                  </div>
                 </div>
-                <div style={{
-                  fontSize: '10px',
-                  fontFamily: 'Arial, sans-serif',
-                  wordBreak: 'break-all'
-                }}>
-                  {image.name || `kiss_${image.id}`}
-                </div>
-              </div>
-            ))}
+              ))
+            })()}
           </div>
 
-          {/* Status bar */}
+          {/* Pagination controls */}
           <div style={{
             display: 'flex',
-            height: '20px',
+            height: '24px',
             borderTop: '1px solid #dfdfdf',
             backgroundColor: '#c0c0c0',
-            fontSize: '12px',
             alignItems: 'center',
-            paddingLeft: '2px'
+            justifyContent: 'space-between',
+            paddingLeft: '4px',
+            paddingRight: '4px',
+            gap: '4px'
           }}>
-            <span>{capturedImages.length} object(s)</span>
+            <button
+              onClick={() => setDownloadsPage(Math.max(0, downloadsPage - 1))}
+              disabled={downloadsPage === 0}
+              style={{
+                padding: '2px 6px',
+                cursor: downloadsPage === 0 ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold',
+                backgroundColor: downloadsPage === 0 ? '#a0a0a0' : '#c0c0c0',
+                border: '2px solid',
+                borderColor: downloadsPage === 0 ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf',
+                fontSize: '12px'
+              }}
+            >
+              ◄ Prev
+            </button>
+            <span style={{
+              fontSize: '12px',
+              whiteSpace: 'nowrap'
+            }}>
+              {capturedImages.length === 0 ? 'No images' : `Page ${downloadsPage + 1}/${Math.ceil(capturedImages.length / 5)}`}
+            </span>
+            <button
+              onClick={() => setDownloadsPage(downloadsPage + 1)}
+              disabled={(downloadsPage + 1) * 5 >= capturedImages.length}
+              style={{
+                padding: '2px 6px',
+                cursor: (downloadsPage + 1) * 5 >= capturedImages.length ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold',
+                backgroundColor: (downloadsPage + 1) * 5 >= capturedImages.length ? '#a0a0a0' : '#c0c0c0',
+                border: '2px solid',
+                borderColor: (downloadsPage + 1) * 5 >= capturedImages.length ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf',
+                fontSize: '12px'
+              }}
+            >
+              Next ►
+            </button>
           </div>
         </div>
       )}
@@ -1900,19 +2652,36 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
             onMouseDown={(e) => handleMouseDown(e, 'trash', trashPos)}
           >
             <h1 style={{ margin: '2px 4px', fontSize: '14px', fontWeight: 'bold' }}>🗑️ Trash</h1>
-            <button 
-              onClick={handleCloseTrash}
-              style={{
-                marginLeft: 'auto',
-                padding: '2px 6px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                outline: 'none',
-                backgroundColor: '#d85c5c'
-              }}
-            >
-              ✕
-            </button>
+            <div style={{ display: 'flex', gap: '4px', marginRight: '2px' }}>
+              {trashedImages.length > 0 && (
+                <button 
+                  onClick={() => setConfirmClearTrash(true)}
+                  style={{
+                    padding: '2px 6px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    backgroundColor: '#c0c0c0',
+                    border: '2px solid',
+                    borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                    fontSize: '12px'
+                  }}
+                >
+                  Clear Trash
+                </button>
+              )}
+              <button 
+                onClick={handleCloseTrash}
+                style={{
+                  padding: '2px 6px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  outline: 'none',
+                  backgroundColor: '#d85c5c'
+                }}
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           {/* File list */}
@@ -1936,109 +2705,128 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
                 Trash is empty
               </div>
             ) : (
-              trashedImages.map((image) => (
-                <div
-                  key={image.id}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '4px',
-                    minWidth: '70px',
-                    textAlign: 'center',
-                    borderRadius: '2px',
-                    transition: 'background 0.1s',
-                    position: 'relative'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#000080'
-                    e.currentTarget.style.color = 'white'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                    e.currentTarget.style.color = 'black'
-                  }}
-                >
+              (() => {
+                const itemsPerPage = 5
+                const startIdx = trashPage * itemsPerPage
+                const endIdx = startIdx + itemsPerPage
+                const pageImages = trashedImages.slice(startIdx, endIdx)
+                
+                return pageImages.map((image) => (
                   <div
-                    onMouseDown={(e) => {
-                      if (e.button === 0) {
-                        setDraggedImageId(image.id)
-                        setDragImageSource('trash')
-                        setDragImagePos({ x: e.clientX - 30, y: e.clientY - 30 })
-                      }
-                    }}
+                    key={image.id}
                     style={{
-                      cursor: 'grab',
-                      position: 'relative',
-                      userSelect: 'none'
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px',
+                      minWidth: '70px',
+                      textAlign: 'center',
+                      borderRadius: '2px',
+                      transition: 'background 0.1s',
+                      position: 'relative'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#000080'
+                      e.currentTarget.style.color = 'white'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent'
+                      e.currentTarget.style.color = 'black'
                     }}
                   >
-                    <img 
-                      src={image.dataUrl} 
-                      alt={`Trash ${image.id}`}
-                      style={{
-                        width: '60px',
-                        height: '60px',
-                        objectFit: 'cover',
-                        border: '1px solid #808080',
-                        opacity: 0.7,
-                        position: 'relative'
+                    <div
+                      onMouseDown={(e) => {
+                        if (e.button === 0) {
+                          setDraggedImageId(image.id)
+                          setDragImageSource('trash')
+                          setDragImagePos({ x: e.clientX - 30, y: e.clientY - 30 })
+                        }
                       }}
-                    />
-                    {/* Red X button */}
-                    <button
                       onClick={() => {
                         playClickSound()
-                        setImageToDeletePermanently(image.id)
+                        setSelectedTrashImage(image)
                       }}
                       style={{
-                        position: 'absolute',
-                        top: '-8px',
-                        right: '-8px',
-                        width: '20px',
-                        height: '20px',
-                        padding: '0',
-                        backgroundColor: '#c00000',
-                        color: 'white',
-                        border: '1px solid #800000',
-                        borderRadius: '50%',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 10,
-                        outline: 'none'
+                        cursor: 'grab',
+                        position: 'relative',
+                        userSelect: 'none'
                       }}
                     >
-                      ✕
-                    </button>
+                      <img 
+                        src={image.dataUrl} 
+                        alt={`Trash ${image.id}`}
+                        style={{
+                          width: '60px',
+                          height: '60px',
+                          objectFit: 'cover',
+                          border: '1px solid #808080',
+                          opacity: 0.7,
+                          position: 'relative'
+                        }}
+                      />
+                    </div>
+                    <div style={{
+                      fontSize: '10px',
+                      fontFamily: 'Arial, sans-serif',
+                      wordBreak: 'break-all'
+                    }}>
+                      {image.name || `trash_${image.id}`}
+                    </div>
                   </div>
-                  <div style={{
-                    fontSize: '10px',
-                    fontFamily: 'Arial, sans-serif',
-                    wordBreak: 'break-all'
-                  }}>
-                    trash_{image.name || `${image.id}`}
-                  </div>
-                </div>
-              ))
+                ))
+              })()
             )}
           </div>
 
-          {/* Status bar */}
+          {/* Pagination controls */}
           <div style={{
             display: 'flex',
-            height: '20px',
+            height: '24px',
             borderTop: '1px solid #dfdfdf',
             backgroundColor: '#c0c0c0',
-            fontSize: '12px',
             alignItems: 'center',
-            paddingLeft: '2px'
+            justifyContent: 'space-between',
+            paddingLeft: '4px',
+            paddingRight: '4px',
+            gap: '4px'
           }}>
-            <span>{trashedImages.length} object(s)</span>
+            <button
+              onClick={() => setTrashPage(Math.max(0, trashPage - 1))}
+              disabled={trashPage === 0}
+              style={{
+                padding: '2px 6px',
+                cursor: trashPage === 0 ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold',
+                backgroundColor: trashPage === 0 ? '#a0a0a0' : '#c0c0c0',
+                border: '2px solid',
+                borderColor: trashPage === 0 ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf',
+                fontSize: '12px'
+              }}
+            >
+              ◄ Prev
+            </button>
+            <span style={{
+              fontSize: '12px',
+              whiteSpace: 'nowrap'
+            }}>
+              {trashedImages.length === 0 ? 'No images' : `Page ${trashPage + 1}/${Math.ceil(trashedImages.length / 5)}`}
+            </span>
+            <button
+              onClick={() => setTrashPage(trashPage + 1)}
+              disabled={(trashPage + 1) * 5 >= trashedImages.length}
+              style={{
+                padding: '2px 6px',
+                cursor: (trashPage + 1) * 5 >= trashedImages.length ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold',
+                backgroundColor: (trashPage + 1) * 5 >= trashedImages.length ? '#a0a0a0' : '#c0c0c0',
+                border: '2px solid',
+                borderColor: (trashPage + 1) * 5 >= trashedImages.length ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf',
+                fontSize: '12px'
+              }}
+            >
+              Next ►
+            </button>
           </div>
         </div>
       )}
@@ -2148,7 +2936,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1002,
+          zIndex: 1004,
           cursor: 'auto'
         }} onClick={(e) => e.stopPropagation()}>
           <div style={{
@@ -2229,6 +3017,100 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
         </div>
       )}
 
+      {/* Clear Trash Confirmation Modal */}
+      {confirmClearTrash && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1004,
+          cursor: 'auto'
+        }} onClick={(e) => e.stopPropagation()}>
+          <div style={{
+            backgroundColor: '#c0c0c0',
+            border: '2px solid',
+            borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+            borderRadius: '4px',
+            boxShadow: 'inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080, 1px 1px 0 #000000, -1px -1px 0 #dfdfdf',
+            padding: '0',
+            flexDirection: 'column',
+            width: '350px',
+            cursor: 'auto'
+          }}>
+            {/* Title bar */}
+            <div style={{
+              background: 'linear-gradient(to right, #000080, #1084d7)',
+              color: 'white',
+              padding: '2px 4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              userSelect: 'none'
+            }}>
+              <h2 style={{ margin: '0', fontSize: '14px', fontWeight: 'bold' }}>⚠️ Clear All Trash</h2>
+            </div>
+
+            {/* Content */}
+            <div style={{
+              padding: '20px',
+              textAlign: 'center'
+            }}>
+              <p style={{ marginBottom: '15px', fontSize: '14px' }}>
+                Are you sure you want to permanently delete ALL items in trash?
+              </p>
+              <p style={{ fontSize: '12px', color: '#c00000', marginBottom: '20px', fontWeight: 'bold' }}>
+                ⚠️ This action cannot be undone. {trashedImages.length} item{trashedImages.length !== 1 ? 's' : ''} will be deleted forever.
+              </p>
+
+              {/* Buttons */}
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+                justifyContent: 'center'
+              }}>
+                <button
+                  onClick={clearAllTrash}
+                  style={{
+                    padding: '6px 20px',
+                    backgroundColor: '#c00000',
+                    color: 'white',
+                    border: '1px solid #800000',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '12px',
+                    outline: 'none'
+                  }}
+                >
+                  Yes, Delete All
+                </button>
+                <button
+                  onClick={cancelClearTrash}
+                  style={{
+                    padding: '6px 20px',
+                    backgroundColor: '#c0c0c0',
+                    color: 'black',
+                    border: '1px solid',
+                    borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '12px',
+                    outline: 'none'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Image Viewer Modal */}
       {selectedImage && (
         <div style={{
@@ -2252,11 +3134,12 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
             border: '2px solid',
             borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
             boxShadow: '1px 1px 0 #ffffff, -1px -1px 0 #404040',
-            maxWidth: '90%',
-            maxHeight: '90%',
+            maxWidth: '95%',
+            maxHeight: '95%',
             display: 'flex',
             flexDirection: 'column',
-            cursor: 'auto'
+            cursor: 'auto',
+            width: '800px'
           }} onClick={(e) => e.stopPropagation()}>
             {/* Title bar */}
             <div style={{
@@ -2268,7 +3151,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
               justifyContent: 'space-between',
               userSelect: 'none'
             }}>
-              <h2 style={{ margin: '0', fontSize: '14px', fontWeight: 'bold' }}>💋 Capture - {selectedImage.timestamp}</h2>
+              <h2 style={{ margin: '0', fontSize: '14px', fontWeight: 'bold' }}>💋 {selectedImage.name || `Capture ${selectedImage.id}`}</h2>
               <button 
                 onClick={() => {
                   playClickSound()
@@ -2287,23 +3170,464 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 550 })
               </button>
             </div>
 
-            {/* Image */}
+            {/* Main content area */}
             <div style={{
-              padding: '10px',
+              display: 'flex',
+              flex: 1,
+              overflow: 'hidden'
+            }}>
+              {/* Image viewer */}
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative'
+              }}>
+                {/* Navigation arrows and image */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flex: 1,
+                  gap: '20px',
+                  padding: '10px',
+                  position: 'relative'
+                }}>
+                  {(() => {
+                    const currentIdx = capturedImages.findIndex(img => img.id === selectedImage.id)
+                    const hasPrev = currentIdx > 0
+                    
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          playClickSound()
+                          if (hasPrev) setSelectedImage(capturedImages[currentIdx - 1])
+                        }}
+                        disabled={!hasPrev}
+                        style={{
+                          padding: '6px 10px',
+                          cursor: hasPrev ? 'pointer' : 'not-allowed',
+                          fontWeight: 'bold',
+                          fontSize: '16px',
+                          backgroundColor: hasPrev ? '#c0c0c0' : '#a0a0a0',
+                          border: '2px solid',
+                          borderColor: hasPrev ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                          position: 'absolute',
+                          left: '5px'
+                        }}
+                      >
+                        ◄
+                      </button>
+                    )
+                  })()}
+
+                  <img 
+                    src={selectedImage.dataUrl} 
+                    alt="Full size capture"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain'
+                    }}
+                  />
+
+                  {(() => {
+                    const currentIdx = capturedImages.findIndex(img => img.id === selectedImage.id)
+                    const hasNext = currentIdx < capturedImages.length - 1
+                    
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          playClickSound()
+                          if (hasNext) setSelectedImage(capturedImages[currentIdx + 1])
+                        }}
+                        disabled={!hasNext}
+                        style={{
+                          padding: '6px 10px',
+                          cursor: hasNext ? 'pointer' : 'not-allowed',
+                          fontWeight: 'bold',
+                          fontSize: '16px',
+                          backgroundColor: hasNext ? '#c0c0c0' : '#a0a0a0',
+                          border: '2px solid',
+                          borderColor: hasNext ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                          position: 'absolute',
+                          right: '5px'
+                        }}
+                      >
+                        ►
+                      </button>
+                    )
+                  })()}
+                </div>
+
+                {/* Bottom controls */}
+                <div style={{
+                  display: 'flex',
+                  gap: '20px',
+                  padding: '6px 10px',
+                  borderTop: '1px solid #dfdfdf',
+                  backgroundColor: '#c0c0c0',
+                  justifyContent: 'space-around',
+                  alignItems: 'center'
+                }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      playClickSound()
+                      // Download original image
+                      fetch(selectedImage.dataUrl)
+                        .then(res => res.blob())
+                        .then(blob => {
+                          const url = URL.createObjectURL(blob)
+                          const link = document.createElement('a')
+                          link.href = url
+                          link.download = `${selectedImage.name || `kiss_${selectedImage.id}`}.png`
+                          document.body.appendChild(link)
+                          link.click()
+                          document.body.removeChild(link)
+                          URL.revokeObjectURL(url)
+                        })
+                    }}
+                    style={{
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '12px',
+                      color: '#ffff00',
+                      backgroundColor: '#1084d7',
+                      border: '2px solid',
+                      borderColor: '#1b9fff #0a4a99 #0a4a99 #1b9fff',
+                      textShadow: '1px 1px 1px rgba(0,0,0,0.5)',
+                      minWidth: '100px',
+                      textAlign: 'center'
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      playClickSound()
+                      moveImageToTrash(selectedImage.id)
+                    }}
+                    style={{
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '12px',
+                      color: '#ffff00',
+                      backgroundColor: '#c00000',
+                      border: '2px solid',
+                      borderColor: '#ff4444 #800000 #800000 #ff4444',
+                      textShadow: '1px 1px 1px rgba(0,0,0,0.5)',
+                      minWidth: '100px',
+                      textAlign: 'center'
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+
+              {/* File info panel */}
+              <div style={{
+                width: '180px',
+                borderLeft: '1px solid #dfdfdf',
+                backgroundColor: '#c0c0c0',
+                padding: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                fontSize: '11px',
+                fontFamily: 'MS Sans Serif, Arial, sans-serif',
+                overflow: 'auto'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#000080' }}>File Properties</div>
+                <div style={{ marginBottom: '6px' }}>
+                  <strong>Name:</strong>
+                  <div style={{ wordBreak: 'break-word', color: '#333' }}>{selectedImage.name || `kiss_${selectedImage.id}`}</div>
+                </div>
+                <div style={{ marginBottom: '6px' }}>
+                  <strong>Date:</strong>
+                  <div style={{ color: '#333' }}>{selectedImage.timestamp || 'Unknown'}</div>
+                </div>
+                <div style={{ marginBottom: '6px' }}>
+                  <strong>Type:</strong>
+                  <div style={{ color: '#333' }}>PNG Image</div>
+                </div>
+                <div style={{ marginBottom: '6px' }}>
+                  <strong>Size:</strong>
+                  <div style={{ color: '#333' }}>
+                    {(() => {
+                      const sizeBytes = selectedImage.dataUrl.length
+                      const sizeKB = (sizeBytes / 1024).toFixed(1)
+                      return `${sizeKB} KB`
+                    })()}
+                  </div>
+                </div>
+                <div style={{ marginBottom: '6px' }}>
+                  <strong>Index:</strong>
+                  <div style={{ color: '#333' }}>
+                    {capturedImages.findIndex(img => img.id === selectedImage.id) + 1} / {capturedImages.length}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Trash Image Viewer Modal */}
+      {selectedTrashImage && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1003,
+          cursor: 'pointer'
+        }} onClick={() => {
+          playClickSound()
+          setSelectedTrashImage(null)
+        }}>
+          <div style={{
+            backgroundColor: '#c0c0c0',
+            border: '2px solid',
+            borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+            boxShadow: '1px 1px 0 #ffffff, -1px -1px 0 #404040',
+            maxWidth: '95%',
+            maxHeight: '95%',
+            display: 'flex',
+            flexDirection: 'column',
+            cursor: 'auto',
+            width: '800px'
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Title bar */}
+            <div style={{
+              background: 'linear-gradient(to right, #000080, #1084d7)',
+              color: 'white',
+              padding: '2px 4px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'auto'
+              justifyContent: 'space-between',
+              userSelect: 'none'
             }}>
-              <img 
-                src={selectedImage.dataUrl} 
-                alt="Full size capture"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  objectFit: 'contain'
+              <h2 style={{ margin: '0', fontSize: '14px', fontWeight: 'bold' }}>💋 {selectedTrashImage.name || `Capture ${selectedTrashImage.id}`}</h2>
+              <button 
+                onClick={() => {
+                  playClickSound()
+                  setSelectedTrashImage(null)
                 }}
-              />
+                style={{
+                  marginLeft: 'auto',
+                  padding: '2px 6px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  outline: 'none',
+                  backgroundColor: '#d85c5c'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Main content area */}
+            <div style={{
+              display: 'flex',
+              flex: 1,
+              overflow: 'hidden'
+            }}>
+              {/* Image viewer */}
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative'
+              }}>
+                {/* Navigation arrows and image */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flex: 1,
+                  gap: '20px',
+                  padding: '10px',
+                  position: 'relative'
+                }}>
+                  {(() => {
+                    const currentIdx = trashedImages.findIndex(img => img.id === selectedTrashImage.id)
+                    const hasPrev = currentIdx > 0
+                    
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          playClickSound()
+                          if (hasPrev) setSelectedTrashImage(trashedImages[currentIdx - 1])
+                        }}
+                        disabled={!hasPrev}
+                        style={{
+                          padding: '6px 10px',
+                          cursor: hasPrev ? 'pointer' : 'not-allowed',
+                          fontWeight: 'bold',
+                          fontSize: '16px',
+                          backgroundColor: hasPrev ? '#c0c0c0' : '#a0a0a0',
+                          border: '2px solid',
+                          borderColor: hasPrev ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                          position: 'absolute',
+                          left: '5px'
+                        }}
+                      >
+                        ◄
+                      </button>
+                    )
+                  })()}
+
+                  <img 
+                    src={selectedTrashImage.dataUrl} 
+                    alt="Full size trash capture"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain',
+                      opacity: 0.8
+                    }}
+                  />
+
+                  {(() => {
+                    const currentIdx = trashedImages.findIndex(img => img.id === selectedTrashImage.id)
+                    const hasNext = currentIdx < trashedImages.length - 1
+                    
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          playClickSound()
+                          if (hasNext) setSelectedTrashImage(trashedImages[currentIdx + 1])
+                        }}
+                        disabled={!hasNext}
+                        style={{
+                          padding: '6px 10px',
+                          cursor: hasNext ? 'pointer' : 'not-allowed',
+                          fontWeight: 'bold',
+                          fontSize: '16px',
+                          backgroundColor: hasNext ? '#c0c0c0' : '#a0a0a0',
+                          border: '2px solid',
+                          borderColor: hasNext ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                          position: 'absolute',
+                          right: '5px'
+                        }}
+                      >
+                        ►
+                      </button>
+                    )
+                  })()}
+                </div>
+
+                {/* Bottom controls */}
+                <div style={{
+                  display: 'flex',
+                  gap: '20px',
+                  padding: '6px 10px',
+                  borderTop: '1px solid #dfdfdf',
+                  backgroundColor: '#c0c0c0',
+                  justifyContent: 'space-around',
+                  alignItems: 'center'
+                }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      restoreImageFromTrash(selectedTrashImage.id)
+                    }}
+                    style={{
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '12px',
+                      color: '#ffff00',
+                      backgroundColor: '#1084d7',
+                      border: '2px solid',
+                      borderColor: '#1b9fff #0a4a99 #0a4a99 #1b9fff',
+                      textShadow: '1px 1px 1px rgba(0,0,0,0.5)',
+                      minWidth: '100px',
+                      textAlign: 'center'
+                    }}
+                  >
+                    Restore
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      playClickSound()
+                      setImageToDeletePermanently(selectedTrashImage.id)
+                    }}
+                    style={{
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '12px',
+                      color: '#ffff00',
+                      backgroundColor: '#c00000',
+                      border: '2px solid',
+                      borderColor: '#ff4444 #800000 #800000 #ff4444',
+                      textShadow: '1px 1px 1px rgba(0,0,0,0.5)',
+                      minWidth: '100px',
+                      textAlign: 'center'
+                    }}
+                  >
+                    Delete Forever
+                  </button>
+                </div>
+              </div>
+
+              {/* File info panel */}
+              <div style={{
+                width: '180px',
+                borderLeft: '1px solid #dfdfdf',
+                backgroundColor: '#c0c0c0',
+                padding: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                fontSize: '11px',
+                fontFamily: 'MS Sans Serif, Arial, sans-serif',
+                overflow: 'auto'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#000080' }}>File Properties</div>
+                <div style={{ marginBottom: '6px' }}>
+                  <strong>Name:</strong>
+                  <div style={{ wordBreak: 'break-word', color: '#333' }}>{selectedTrashImage.name || `kiss_${selectedTrashImage.id}`}</div>
+                </div>
+                <div style={{ marginBottom: '6px' }}>
+                  <strong>Date:</strong>
+                  <div style={{ color: '#333' }}>{selectedTrashImage.timestamp || 'Unknown'}</div>
+                </div>
+                <div style={{ marginBottom: '6px' }}>
+                  <strong>Type:</strong>
+                  <div style={{ color: '#333' }}>PNG Image</div>
+                </div>
+                <div style={{ marginBottom: '6px' }}>
+                  <strong>Size:</strong>
+                  <div style={{ color: '#333' }}>
+                    {(() => {
+                      const sizeBytes = selectedTrashImage.dataUrl.length
+                      const sizeKB = (sizeBytes / 1024).toFixed(1)
+                      return `${sizeKB} KB`
+                    })()}
+                  </div>
+                </div>
+                <div style={{ marginBottom: '6px' }}>
+                  <strong>Index:</strong>
+                  <div style={{ color: '#333' }}>
+                    {trashedImages.findIndex(img => img.id === selectedTrashImage.id) + 1} / {trashedImages.length}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
