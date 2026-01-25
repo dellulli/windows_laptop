@@ -3547,7 +3547,15 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
                 </div>
                 <div style={{ marginBottom: '6px' }}>
                   <strong>Date:</strong>
-                  <div style={{ color: '#333' }}>{selectedImage.timestamp || 'Unknown'}</div>
+                  <div style={{ color: '#333' }}>
+                    {selectedImage.timestamp 
+                      ? new Date(selectedImage.timestamp).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit'
+                        })
+                      : 'Unknown'}
+                  </div>
                 </div>
                 <div style={{ marginBottom: '6px' }}>
                   <strong>Type:</strong>
@@ -3807,7 +3815,15 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
                 </div>
                 <div style={{ marginBottom: '6px' }}>
                   <strong>Date:</strong>
-                  <div style={{ color: '#333' }}>{selectedTrashImage.timestamp || 'Unknown'}</div>
+                  <div style={{ color: '#333' }}>
+                    {selectedTrashImage.timestamp 
+                      ? new Date(selectedTrashImage.timestamp).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit'
+                        })
+                      : 'Unknown'}
+                  </div>
                 </div>
                 <div style={{ marginBottom: '6px' }}>
                   <strong>Type:</strong>
