@@ -29,6 +29,11 @@ function LoginPage({ onLogin, onLogout }) {
   // Play click sound after first interaction (but not while windows sound is playing)
   const playClickSound = () => {
     if (hasPlayedSound.current && clickAudioRef.current) {
+      const windowsAudio = windowsAudioRef.current
+      // Don't play click if windows sound is still playing
+      if (windowsAudio && !windowsAudio.paused && windowsAudio.currentTime < windowsAudio.duration - 0.1) {
+        return
+      }
       clickAudioRef.current.currentTime = 0
       clickAudioRef.current.play().catch((err) => {
         console.log('Could not play click sound:', err)
@@ -213,6 +218,10 @@ function LoginPage({ onLogin, onLogout }) {
             <button
               type="submit"
               disabled={isLoading}
+              onClick={() => {
+                playWindowsSound()
+                playClickSound()
+              }}
               style={{
                 position: 'absolute',
                 right: '4px',
@@ -246,19 +255,20 @@ function LoginPage({ onLogin, onLogout }) {
           </div>
 
           {/* Error Message */}
-          {error && (
-            <div
-              style={{
-                color: '#f06666',
-                fontSize: '13px',
-                fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-                textAlign: 'center',
-                marginTop: '8px'
-              }}
-            >
-              {error}
-            </div>
-          )}
+          <div style={{ height: '20px', marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {error && (
+              <div
+                style={{
+                  color: '#f06666',
+                  fontSize: '13px',
+                  fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+                  textAlign: 'center'
+                }}
+              >
+                {error}
+              </div>
+            )}
+          </div>
         </form>
 
         {/* Password Hint Section */}
