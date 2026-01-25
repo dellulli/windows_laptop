@@ -2534,7 +2534,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
           }}>
             {/* Album cover display */}
             <div style={{
-              marginBottom: '15px',
+              marginBottom: '10px',
               display: 'flex',
               justifyContent: 'center'
             }}>
@@ -2542,10 +2542,12 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
                 src={MUSIC_COVERS[currentSongIndex]}
                 alt={`Album ${currentSongIndex + 1}`}
                 style={{
-                  width: '80px',
-                  height: '80px',
-                  border: '2px solid #000080',
-                  cursor: 'pointer'
+                  width: '120px',
+                  height: '120px',
+                  border: '3px solid',
+                  borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                  cursor: 'pointer',
+                  boxShadow: 'inset 1px 1px 0 #ffffff, inset -1px -1px 0 #404040'
                 }}
                 onClick={() => {
                   playClickSound()
@@ -2554,74 +2556,82 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
               />
             </div>
 
+            <div style={{
+              marginBottom: '8px',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              color: '#000080',
+              minHeight: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px'
+            }}>
+              {PLAYLIST[currentSongIndex].title}
+            </div>
+
             {/* Play/Pause and Navigation arrows */}
             <div style={{
               display: 'flex',
-              gap: '20px',
-              justifyContent: 'center',
+              gap: '12px',
+              justifyContent: 'flex-end',
               alignItems: 'center',
-              marginBottom: '15px'
+              marginBottom: '8px',
+              paddingRight: '28px'
             }}>
-              <button
-                onClick={handlePreviousSong}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '24px',
-                  padding: '0',
-                  outline: 'none',
-                  color: '#000080'
-                }}
-              >
-                ◀
-              </button>
-              <button
-                onClick={handlePlayPauseMusic}
-                style={{
-                  width: '60px',
-                  padding: '8px',
-                  backgroundColor: '#c0c0c0',
-                  color: 'black',
-                  border: '1px solid',
-                  borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '11px',
-                  fontFamily: 'Arial, sans-serif',
-                  outline: 'none'
-                }}
-              >
-                {isMusciPlaying ? 'PAUSE' : 'PLAY'}
-              </button>
-              <button
-                onClick={handleNextSong}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '24px',
-                  padding: '0',
-                  outline: 'none',
-                  color: '#000080'
-                }}
-              >
-                ▶
-              </button>
-            </div>
-
-            <div style={{
-              marginBottom: '15px',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              color: '#000080',
-              minHeight: '30px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}>
-              {PLAYLIST[currentSongIndex].title}
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                <button
+                  onClick={handlePreviousSong}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '24px',
+                    padding: '0',
+                    outline: 'none',
+                    color: '#000080'
+                  }}
+                >
+                  ◀
+                </button>
+                <button
+                  onClick={handlePlayPauseMusic}
+                  style={{
+                    width: '60px',
+                    padding: '6px',
+                    backgroundColor: '#c0c0c0',
+                    color: 'black',
+                    border: '1px solid',
+                    borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '10px',
+                    fontFamily: 'Arial, sans-serif',
+                    outline: 'none'
+                  }}
+                >
+                  {isMusciPlaying ? 'PAUSE' : 'PLAY'}
+                </button>
+                <button
+                  onClick={handleNextSong}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '24px',
+                    padding: '0',
+                    outline: 'none',
+                    color: '#000080'
+                  }}
+                >
+                  ▶
+                </button>
+              </div>
               <button
                 onClick={() => {
                   playClickSound()
@@ -2629,7 +2639,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
                 }}
                 style={{
                   padding: '2px 4px',
-                  fontSize: '14px',
+                  fontSize: '12px',
                   fontWeight: 'bold',
                   cursor: 'pointer',
                   border: '2px outset #dfdfdf',
@@ -2648,38 +2658,39 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
             </div>
 
             {/* Sound Waves Animation */}
-            <div style={{
+            <div key={`waves-${currentSongIndex}`} style={{
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              height: '30px',
-              gap: '3px'
+              height: '20px',
+              gap: '3px',
+              marginBottom: '5px'
             }}>
-              {[0, 1, 2].map((i) => (
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30].map((i) => (
                 <div
                   key={i}
                   style={{
-                    width: '3px',
-                    height: isMusciPlaying ? '20px' : '5px',
+                    width: '1.5px',
+                    height: isMusciPlaying ? '15px' : '4px',
                     backgroundColor: '#000080',
                     borderRadius: '1px',
-                    animation: isMusciPlaying ? `wave 0.6s ease-in-out ${i * 0.1}s infinite` : 'none',
+                    animation: isMusciPlaying ? `wave 1.5s ease-in-out ${i * 0.3}s infinite` : 'none',
                     transition: 'height 0.3s ease'
                   }}
                 />
               ))}
               <style>{`
                 @keyframes wave {
-                  0%, 100% { height: 5px; }
-                  50% { height: 20px; }
+                  0%, 100% { height: 4px; }
+                  50% { height: 15px; }
                 }
               `}</style>
             </div>
 
             {/* Seekable Audio Player */}
             <div style={{
-              marginTop: '5px',
-              marginBottom: '10px'
+              marginTop: '3px',
+              marginBottom: '5px'
             }}>
               <input
                 ref={musicSliderRef}
