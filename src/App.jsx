@@ -134,6 +134,9 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
     const saved = localStorage.getItem('isLoggedIn')
     return saved ? JSON.parse(saved) : false
   })
+  const [bgImagesLoaded, setBgImagesLoaded] = useState(false)
+  const [bgImageLoaded, setBgImageLoaded] = useState(false)
+  const [windowsStartImageLoaded, setWindowsStartImageLoaded] = useState(false)
   const [currentFilter, setCurrentFilter] = useState(() => {
     const saved = localStorage.getItem('currentFilter')
     return saved ? JSON.parse(saved) : 'normal'
@@ -162,6 +165,13 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
 
   // Fade in animation
   const fadeProps = useSpring({ opacity: 1, from: { opacity: 0 } })
+
+  // Update bgImagesLoaded when both images are loaded
+  useEffect(() => {
+    if (bgImageLoaded && windowsStartImageLoaded) {
+      setBgImagesLoaded(true)
+    }
+  }, [bgImageLoaded, windowsStartImageLoaded])
 
   // Load captured images from localStorage on mount
   useEffect(() => {
@@ -1437,7 +1447,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
       width: '100%',
       height: '100vh',
       overflow: 'hidden',
-      cursor: `url(${cursorImg}) 4 12, auto`
+      cursor: `url(${cursorImg}) 4 12, auto`,
+      backgroundColor: '#0000aa'
     }}>
       <audio ref={clickAudioRef} src={clickSound} />
       <audio ref={cameraSnapAudioRef} src={cameraSnapSound} />
@@ -1452,6 +1463,31 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
         }
       }} />
       <audio ref={trashAudioRef} src={trashSound} />
+
+      {/* Loading message - appears while images are loading */}
+      {!bgImagesLoaded && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            color: '#ffff00',
+            fontSize: '24px',
+            fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            pointerEvents: 'none',
+            zIndex: 9999
+          }}
+        >
+          Wait for bg image to load before clicking anything!
+        </div>
+      )}
+
+      {/* Hidden img elements to track when images load */}
+      <img src={bgImage} onLoad={() => setBgImageLoaded(true)} style={{ display: 'none' }} />
+      <img src={windowsStartImg} onLoad={() => setWindowsStartImageLoaded(true)} style={{ display: 'none' }} />
 
       {showDesktop ? (
         // Desktop view with folders and camera icon - Two columns layout
