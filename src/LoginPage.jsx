@@ -11,6 +11,7 @@ function LoginPage({ onLogin, onLogout }) {
   const [isLoading, setIsLoading] = useState(false)
   const [showLogoutMenu, setShowLogoutMenu] = useState(false)
   const [showHint, setShowHint] = useState(false)
+  const [bgImageLoaded, setBgImageLoaded] = useState(false)
   const windowsAudioRef = useRef(null)
   const clickAudioRef = useRef(null)
   const keyboardAudioRef = useRef(null)
@@ -103,15 +104,19 @@ function LoginPage({ onLogin, onLogout }) {
       <audio ref={clickAudioRef} src={clickSound} />
       <audio ref={keyboardAudioRef} src={keyboardSound} />
 
+      {/* Hidden img element to track when background image loads */}
+      <img src={windowsStartBg} onLoad={() => setBgImageLoaded(true)} style={{ display: 'none' }} />
+
       {/* Loading Message */}
-      <div
-        style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          color: '#ffff00',
-          fontSize: '24px',
+      {!bgImageLoaded && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            color: '#ffff00',
+            fontSize: '24px',
           fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
           fontWeight: 'bold',
           textAlign: 'center',
@@ -121,6 +126,7 @@ function LoginPage({ onLogin, onLogout }) {
       >
         Wait for bg image to load before clicking anything!
       </div>
+      )}
 
       {/* Windows Version - Bottom Left */}
       <div
