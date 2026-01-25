@@ -872,11 +872,13 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
         const splatterScale = 1.2 // Scale to cover full screen
         const splatterWidth = canvas.width * splatterScale
         const splatterHeight = canvas.height * splatterScale
-        const splatterX = (canvas.width - splatterWidth) / 2
+        const splatterX = (canvas.width - splatterWidth) / 2 - 200 // Moved left by 100px
         const splatterY = (canvas.height - splatterHeight) / 2
 
-        ctx.globalAlpha = 0.5 // More visible opacity
+        ctx.globalAlpha = 0.6
+        ctx.globalCompositeOperation = 'multiply' // Darken blend mode
         ctx.drawImage(splatterImg, splatterX, splatterY, splatterWidth, splatterHeight)
+        ctx.globalCompositeOperation = 'source-over' // Reset to default
         ctx.globalAlpha = 1.0
       } catch (error) {
         console.error('Blood splatter positioning error:', error)
