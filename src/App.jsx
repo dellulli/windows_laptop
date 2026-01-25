@@ -2069,7 +2069,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 490 })
                         marginLeft: '5px'
                       }}
                     >
-                      Michonne Overlay
+                      Michonne
                     </label>
                   </div>
                 </div>
