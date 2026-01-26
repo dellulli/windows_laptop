@@ -1493,7 +1493,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
             zIndex: 9999
           }}
         >
-          Wait for bg image to load before clicking anything!
+          Wait for bg image to fully load before clicking anything!
         </div>
       )}
 
