@@ -6,6 +6,15 @@ import LoginPage from './LoginPage'
 // App title constant
 const APP_TITLE = "Edward's Windows Laptop"
 
+// Capture notification messages
+const CAPTURE_MESSAGES = [
+  "Mogged",
+  "Michonne approved ✔",
+  "Michonne loves 😍",
+  "aura maxxing",
+  "ateee 💅"
+]
+
 import kissImg from './assets/michonne_kiss.png'
 import bgImage from './assets/bg.png'
 import clickSound from './assets/click.mp3'
@@ -103,6 +112,7 @@ function App() {
   const [downloadsPage, setDownloadsPage] = useState(0)
   const [trashPage, setTrashPage] = useState(0)
   const [captureNotification, setCaptureNotification] = useState(null)
+  const [captureMessageIndex, setCaptureMessageIndex] = useState(0)
   const [showMusicPlayer, setShowMusicPlayer] = useState(false)
   const [isMusciPlaying, setIsMusicPlaying] = useState(false)
   const [showKissCam, setShowKissCam] = useState(false)
@@ -941,6 +951,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
 
     // Show capture notification immediately for instant feedback
     setCaptureNotification(true)
+    setCaptureMessageIndex((prevIndex) => (prevIndex + 1) % CAPTURE_MESSAGES.length)
     setTimeout(() => setCaptureNotification(false), 2000)
 
     // Increment capture counter immediately
@@ -1749,7 +1760,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
           }}
           onMouseDown={(e) => handleMouseDown(e, 'notification', captureNotificationPos)}
         >
-          ✓ Image Captured!
+          {CAPTURE_MESSAGES[captureMessageIndex]}
         </div>
       )}
 
