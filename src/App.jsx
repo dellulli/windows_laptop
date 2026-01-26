@@ -129,7 +129,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
   const [controlsWindowPos, setControlsWindowPos] = useState({ x: 310, y: 15 })
   const [trashPos, setTrashPos] = useState({ x: 250, y: 650 })
   const [purplePalacePos, setPurplePalacePos] = useState({ x: 880, y: 550 })
-  const [captureNotificationPos, setCaptureNotificationPos] = useState({ x: 400, y: 200 })
+  const [captureNotificationPos, setCaptureNotificationPos] = useState({ x: 700, y: 200 })
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const saved = localStorage.getItem('isLoggedIn')
     return saved ? JSON.parse(saved) : false
