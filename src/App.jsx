@@ -93,10 +93,22 @@ function App() {
   const frameCounterRef = useRef(0)  // Tracks frame number for animated grain
 
   // State for overlay positioning
-  const [offsetX, setOffsetX] = useState(-27)
-  const [offsetY, setOffsetY] = useState(-84)
-  const [scale, setScale] = useState(0.7)
-  const [rotation, setRotation] = useState(0)
+  const [offsetX, setOffsetX] = useState(() => {
+    const saved = localStorage.getItem('michonneOffsetX')
+    return saved !== null ? Number(saved) : -27
+  })
+  const [offsetY, setOffsetY] = useState(() => {
+    const saved = localStorage.getItem('michonneOffsetY')
+    return saved !== null ? Number(saved) : -84
+  })
+  const [scale, setScale] = useState(() => {
+    const saved = localStorage.getItem('michonneScale')
+    return saved !== null ? Number(saved) : 0.7
+  })
+  const [rotation, setRotation] = useState(() => {
+    const saved = localStorage.getItem('michonneRotation')
+    return saved !== null ? Number(saved) : 0
+  })
   const [isWebcamActive, setIsWebcamActive] = useState(false)
   const [cameraError, setCameraError] = useState(null)
   const [showAbout, setShowAbout] = useState(false)
@@ -174,6 +186,23 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
 
   // Fade in animation
   const fadeProps = useSpring({ opacity: 1, from: { opacity: 0 } })
+
+  // Save Michonne position to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('michonneOffsetX', offsetX.toString())
+  }, [offsetX])
+
+  useEffect(() => {
+    localStorage.setItem('michonneOffsetY', offsetY.toString())
+  }, [offsetY])
+
+  useEffect(() => {
+    localStorage.setItem('michonneScale', scale.toString())
+  }, [scale])
+
+  useEffect(() => {
+    localStorage.setItem('michonneRotation', rotation.toString())
+  }, [rotation])
 
   // Update bgImagesLoaded when background image is loaded
   useEffect(() => {
