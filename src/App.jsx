@@ -31,6 +31,7 @@ import emptyBinImg from './assets/empty_bin.webp'
 import fullBinImg from './assets/Recycle_bin_full.webp'
 import trashSound from './assets/trash.mp3'
 import heartFilterImg from './assets/heart_filter.png'
+import armpitImg from './assets/armpit.png'
 import profilePicture from './assets/profile_picture.png'
 import windowsStartImg from './assets/windows_start.png'
 import letterboxdLogo from './assets/letterboxd_logo.png'
@@ -479,7 +480,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
     const borderMap = {
       film_frame: new URL('./assets/film_frame.png', import.meta.url).href,
       filter_border: new URL('./assets/filter_border.png', import.meta.url).href,
-      katana_border: new URL('./assets/katana_border.png', import.meta.url).href
+      katana_border: new URL('./assets/katana_border.png', import.meta.url).href,
+      mothers_armpits: new URL('./assets/armpit.png', import.meta.url).href
     }
     Object.values(borderMap).forEach((borderSrc) => {
       const borderImg = new Image()
@@ -805,8 +807,9 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
     // Draw border overlay if one is selected (skip film_frame and katana_border in 4-grid mode as they'll be drawn later)
     if (currentBorder !== 'none' && borderRef.current) {
       const shouldSkipForGridMode = use4Grid && (currentBorder === 'film_frame' || currentBorder === 'katana_border')
+      const isMothersArmpits = currentBorder === 'mothers_armpits'
       
-      if (!shouldSkipForGridMode) {
+      if (!shouldSkipForGridMode && !isMothersArmpits) {
         const borderImg = borderRef.current
         let borderScale = 1 // Full canvas size by default
         let borderOpacity = 1 // Default opacity
@@ -829,6 +832,64 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
         ctx.globalAlpha = borderOpacity
         ctx.drawImage(borderImg, borderX, borderY, borderWidth, borderHeight)
         ctx.globalAlpha = 1.0
+      }
+    }
+
+    // Draw Mother's Armpits filter if selected (positioned on left side of head)
+    if (currentBorder === 'mothers_armpits' && borderRef.current && allDetectedFaces.length > 0) {
+      try {
+        allDetectedFaces.forEach((faceLandmarks, faceIndex) => {
+          const leftEar = faceLandmarks[234] // Left ear landmark
+          const leftEye = faceLandmarks[33]  // Left eye landmark
+          const rightEye = faceLandmarks[263] // Right eye landmark
+          
+          if (!leftEar || !leftEye || !rightEye) {
+            return
+          }
+          
+          // Convert left ear position to canvas coordinates
+          const { pixelX: earX, pixelY: earY } = normalizedToCanvasCoordinates(
+            leftEar.x,
+            leftEar.y,
+            canvas.width,
+            canvas.height
+          )
+          
+          // Calculate dynamic scale based on face size
+          const eyeDistance = Math.sqrt(
+            Math.pow(rightEye.x - leftEye.x, 2) + 
+            Math.pow(rightEye.y - leftEye.y, 2)
+          )
+          const referenceEyeDistance = 0.15
+          const proximityRatio = eyeDistance / referenceEyeDistance
+          const dynamicScale = 0.7 * proximityRatio // 2x scale as requested
+          const finalScale = Math.max(0.2, Math.min(3, dynamicScale))
+          
+          const armpitImg = borderRef.current
+          const armpitWidth = armpitImg.width * finalScale
+          const armpitHeight = armpitImg.height * finalScale
+          
+          // Offset values to move up and left
+          const offsetRight = 40 // Move right by this amount (or left if negative)
+          const offsetUp = 400 // Move up by this amount
+          
+          ctx.save()
+          ctx.globalAlpha = 1
+          // Rotate right (clockwise) as if user is being sucked in
+          // Apply offsets to the translation point
+          ctx.translate(earX - offsetRight, earY - offsetUp)
+          ctx.rotate((-20 * Math.PI) / 180) // Rotate 45 degrees right
+          ctx.drawImage(
+            armpitImg,
+            -armpitWidth / 2,
+            -armpitHeight / 2,
+            armpitWidth,
+            armpitHeight
+          )
+          ctx.restore()
+        })
+      } catch (error) {
+        console.error('Mothers Armpits filter rendering error:', error)
       }
     }
 
@@ -2024,7 +2085,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                     <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                       <button
                         onClick={() => {
-                          const options = ['none', 'film_frame', 'filter_border', 'katana_border']
+                          const options = ['none', 'film_frame', 'filter_border', 'katana_border', 'mothers_armpits']
                           const currentIndex = options.indexOf(currentBorder)
                           const newIndex = (currentIndex - 1 + options.length) % options.length
                           setCurrentBorder(options[newIndex])
@@ -2051,11 +2112,12 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                       <span style={{ fontSize: '11px', minWidth: '60px', textAlign: 'center' }}>
                         {currentBorder === 'none' ? 'None' :
                          currentBorder === 'film_frame' ? 'Film' :
-                         currentBorder === 'filter_border' ? 'Waifus' : 'Katana'}
+                         currentBorder === 'filter_border' ? 'Waifus' :
+                         currentBorder === 'katana_border' ? 'Katana' : 'Mother\'s Armpits'}
                       </span>
                       <button
                         onClick={() => {
-                          const options = ['none', 'film_frame', 'filter_border', 'katana_border']
+                          const options = ['none', 'film_frame', 'filter_border', 'katana_border', 'mothers_armpits']
                           const currentIndex = options.indexOf(currentBorder)
                           const newIndex = (currentIndex + 1) % options.length
                           setCurrentBorder(options[newIndex])
@@ -2261,7 +2323,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
 
                 <div className="control-group">
                   <label>
-                    Offset X: <span className="value">{offsetX}</span>
+                    Move horizontally: <span className="value">{offsetX}</span>
                   </label>
                   <div style={{ position: 'relative', height: '24px', display: 'flex', alignItems: 'center' }}>
                     <div style={{ position: 'absolute', width: '100%', height: '1px', backgroundColor: '#666', top: '50%' }}></div>
@@ -2279,7 +2341,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
 
                 <div className="control-group">
                   <label>
-                    Offset Y: <span className="value">{offsetY}</span>
+                    Move vertically: <span className="value">{offsetY}</span>
                   </label>
                   <div style={{ position: 'relative', height: '24px', display: 'flex', alignItems: 'center' }}>
                     <div style={{ position: 'absolute', width: '100%', height: '1px', backgroundColor: '#666', top: '50%' }}></div>
@@ -2316,7 +2378,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
 
                 <div className="control-group">
                   <label>
-                    Rotation: <span className="value">{rotation}°</span>
+                    Rotate: <span className="value">{rotation}°</span>
                   </label>
                   <div style={{ position: 'relative', height: '24px', display: 'flex', alignItems: 'center' }}>
                     <div style={{ position: 'absolute', width: '100%', height: '1px', backgroundColor: '#666', top: '50%' }}></div>
