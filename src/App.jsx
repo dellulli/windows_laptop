@@ -835,22 +835,30 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
       }
     }
 
-    // Draw Mother's Armpits filter if selected (positioned on left side of head)
+    // Draw Mother's Armpits filter if selected (bottom edge touches top of head, positioned at right edge)
     if (currentBorder === 'mothers_armpits' && borderRef.current && allDetectedFaces.length > 0) {
       try {
         allDetectedFaces.forEach((faceLandmarks, faceIndex) => {
-          const leftEar = faceLandmarks[234] // Left ear landmark
           const leftEye = faceLandmarks[33]  // Left eye landmark
           const rightEye = faceLandmarks[263] // Right eye landmark
+          const topHead = faceLandmarks[10] // Top of head landmark
           
-          if (!leftEar || !leftEye || !rightEye) {
+          if (!topHead || !leftEye || !rightEye) {
             return
           }
           
-          // Convert left ear position to canvas coordinates
-          const { pixelX: earX, pixelY: earY } = normalizedToCanvasCoordinates(
-            leftEar.x,
-            leftEar.y,
+          // Convert top head position to canvas coordinates
+          const { pixelX: headX, pixelY: headY } = normalizedToCanvasCoordinates(
+            topHead.x,
+            topHead.y,
+            canvas.width,
+            canvas.height
+          )
+          
+          // Convert right eye to canvas coordinates for right edge positioning
+          const { pixelX: rightEyeX } = normalizedToCanvasCoordinates(
+            rightEye.x,
+            rightEye.y,
             canvas.width,
             canvas.height
           )
@@ -862,27 +870,22 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
           )
           const referenceEyeDistance = 0.15
           const proximityRatio = eyeDistance / referenceEyeDistance
-          const dynamicScale = 0.7 * proximityRatio // 2x scale as requested
+          const dynamicScale = 0.7 * proximityRatio
           const finalScale = Math.max(0.2, Math.min(3, dynamicScale))
           
           const armpitImg = borderRef.current
           const armpitWidth = armpitImg.width * finalScale
           const armpitHeight = armpitImg.height * finalScale
           
-          // Offset values to move up and left
-          const offsetRight = 40 // Move right by this amount (or left if negative)
-          const offsetUp = 400 // Move up by this amount
-          
           ctx.save()
           ctx.globalAlpha = 1
-          // Rotate right (clockwise) as if user is being sucked in
-          // Apply offsets to the translation point
-          ctx.translate(earX - offsetRight, earY - offsetUp)
-          ctx.rotate((-20 * Math.PI) / 180) // Rotate 45 degrees right
+          // Position at right edge of head with rotation preserved, bottom edge touching top of head
+          ctx.translate(rightEyeX, headY)
+          ctx.rotate((20 * Math.PI) / 180) // Keep original rotation
           ctx.drawImage(
             armpitImg,
             -armpitWidth / 2,
-            -armpitHeight / 2,
+            -armpitHeight,
             armpitWidth,
             armpitHeight
           )
