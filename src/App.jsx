@@ -420,7 +420,10 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
 
     const handlePlay = () => setIsMusicPlaying(true)
     const handlePause = () => setIsMusicPlaying(false)
-    const handleTimeUpdate = () => setAudioCurrentTime(audioElement.currentTime)
+    const handleTimeUpdate = () => {
+      console.log('timeupdate:', audioElement.currentTime)
+      setAudioCurrentTime(audioElement.currentTime)
+    }
     const handleLoadedMetadata = () => {
       // Update duration when metadata is loaded
       setAudioDuration(audioElement.duration || 0)
