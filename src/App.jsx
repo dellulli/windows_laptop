@@ -415,17 +415,20 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
 
   // Listen to audio play/pause events to update UI
   useEffect(() => {
-    console.log('Audio useEffect running, currentSongIndex:', currentSongIndex)
+    console.log('Audio useEffect running')
     
-    // Use a small timeout to ensure audio element is mounted
-    const timer = setTimeout(() => {
+    const attachListeners = () => {
       const audioElement = bgMusicRef.current
-      console.log('audioElement:', audioElement)
+      console.log('Checking audioElement:', audioElement)
+      
       if (!audioElement) {
-        console.log('No audio element found!')
+        console.log('Audio element not found, retrying...')
+        // Retry after a longer delay
+        setTimeout(attachListeners, 500)
         return
       }
 
+      console.log('Audio element found! Attaching listeners')
       const handlePlay = () => setIsMusicPlaying(true)
       const handlePause = () => setIsMusicPlaying(false)
       const handleTimeUpdate = () => {
@@ -433,28 +436,35 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
         setAudioCurrentTime(audioElement.currentTime)
       }
       const handleLoadedMetadata = () => {
-        // Update duration when metadata is loaded
         console.log('loadedmetadata fired')
         setAudioDuration(audioElement.duration || 0)
         setAudioCurrentTime(audioElement.currentTime)
       }
 
-      console.log('Attaching event listeners')
       audioElement.addEventListener('play', handlePlay)
       audioElement.addEventListener('pause', handlePause)
       audioElement.addEventListener('timeupdate', handleTimeUpdate)
       audioElement.addEventListener('loadedmetadata', handleLoadedMetadata)
 
-      return () => {
-        console.log('Cleaning up event listeners')
-        audioElement.removeEventListener('play', handlePlay)
-        audioElement.removeEventListener('pause', handlePause)
-        audioElement.removeEventListener('timeupdate', handleTimeUpdate)
-        audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
-      }
-    }, 100)
+      // Store refs for cleanup
+      audioElement._handlePlay = handlePlay
+      audioElement._handlePause = handlePause
+      audioElement._handleTimeUpdate = handleTimeUpdate
+      audioElement._handleLoadedMetadata = handleLoadedMetadata
+    }
 
-    return () => clearTimeout(timer)
+    const timer = setTimeout(attachListeners, 0)
+    
+    return () => {
+      clearTimeout(timer)
+      const audioElement = bgMusicRef.current
+      if (audioElement && audioElement._handlePlay) {
+        audioElement.removeEventListener('play', audioElement._handlePlay)
+        audioElement.removeEventListener('pause', audioElement._handlePause)
+        audioElement.removeEventListener('timeupdate', audioElement._handleTimeUpdate)
+        audioElement.removeEventListener('loadedmetadata', audioElement._handleLoadedMetadata)
+      }
+    }
   }, [currentSongIndex])
 
   // Preload critical overlay image immediately
