@@ -438,7 +438,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
       audioElement.removeEventListener('timeupdate', handleTimeUpdate)
       audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
     }
-  }, [])
+  }, [currentSongIndex])
 
   // Preload critical overlay image immediately
   useEffect(() => {
