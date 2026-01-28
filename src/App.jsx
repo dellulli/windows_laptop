@@ -415,8 +415,13 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
 
   // Listen to audio play/pause events to update UI
   useEffect(() => {
+    console.log('Audio useEffect running, currentSongIndex:', currentSongIndex)
     const audioElement = bgMusicRef.current
-    if (!audioElement) return
+    console.log('audioElement:', audioElement)
+    if (!audioElement) {
+      console.log('No audio element found!')
+      return
+    }
 
     const handlePlay = () => setIsMusicPlaying(true)
     const handlePause = () => setIsMusicPlaying(false)
@@ -426,16 +431,19 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
     }
     const handleLoadedMetadata = () => {
       // Update duration when metadata is loaded
+      console.log('loadedmetadata fired')
       setAudioDuration(audioElement.duration || 0)
       setAudioCurrentTime(audioElement.currentTime)
     }
 
+    console.log('Attaching event listeners')
     audioElement.addEventListener('play', handlePlay)
     audioElement.addEventListener('pause', handlePause)
     audioElement.addEventListener('timeupdate', handleTimeUpdate)
     audioElement.addEventListener('loadedmetadata', handleLoadedMetadata)
 
     return () => {
+      console.log('Cleaning up event listeners')
       audioElement.removeEventListener('play', handlePlay)
       audioElement.removeEventListener('pause', handlePause)
       audioElement.removeEventListener('timeupdate', handleTimeUpdate)
