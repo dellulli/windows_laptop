@@ -26,6 +26,7 @@ import musicFile3 from './assets/music3.mp3'
 import musicFile4 from './assets/music4.mp3'
 import musicFile5 from './assets/music5.mp3'
 import musicFile6 from './assets/music6.mp3'
+import musicFile7 from './assets/music7.mp3'
 import cursorImg from './assets/cursor.svg'
 import emptyBinImg from './assets/empty_bin.webp'
 import fullBinImg from './assets/Recycle_bin_full.webp'
@@ -42,6 +43,7 @@ import music3Cover from './assets/music_covers/music3.png'
 import music4Cover from './assets/music_covers/music4.jpg'
 import music5Cover from './assets/music_covers/music5.jpg'
 import music6Cover from './assets/music_covers/music6.jpg'
+import music7Cover from './assets/music_covers/music7.png'
 
 // Playlist data
 const PLAYLIST = [
@@ -68,12 +70,16 @@ const PLAYLIST = [
   {
     title: 'Lovetripper',
     file: musicFile6
+  },
+  {
+    title: 'Bojack\'s Theme',
+    file: musicFile7
   }
 ]
 import './App.css'
 
 // Music cover images array
-const MUSIC_COVERS = [music1Cover, music2Cover, music3Cover, music4Cover, music5Cover, music6Cover]
+const MUSIC_COVERS = [music1Cover, music2Cover, music3Cover, music4Cover, music5Cover, music6Cover, music7Cover]
 
 function App() {
   const videoRef = useRef(null)
