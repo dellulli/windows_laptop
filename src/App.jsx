@@ -2810,26 +2810,28 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
             onMouseDown={(e) => handleMouseDown(e, 'downloads', downloadsPos)}
           >
             <h1 style={{ margin: '2px 4px', fontSize: '14px', fontWeight: 'bold' }}>Downloads ⋆｡°✩</h1>
-            <button 
-              onClick={() => {
-                playClickSound()
-                setShowSaveAllModal(true)
-              }}
-              style={{
-                marginLeft: 'auto',
-                padding: '2px 6px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                outline: 'none',
-                backgroundColor: '#c0c0c0',
-                border: '2px solid',
-                borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
-                fontSize: '11px',
-                color: '#000080'
-              }}
-            >
-              💾 Save All
-            </button>
+            {capturedImages.length > 1 && (
+              <button 
+                onClick={() => {
+                  playClickSound()
+                  setShowSaveAllModal(true)
+                }}
+                style={{
+                  marginLeft: 'auto',
+                  padding: '2px 6px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  outline: 'none',
+                  backgroundColor: '#c0c0c0',
+                  border: '2px solid',
+                  borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                  fontSize: '11px',
+                  color: '#000080'
+                }}
+              >
+                💾 Save All
+              </button>
+            )}
             <button 
               onClick={handleCloseDownloads}
               style={{
