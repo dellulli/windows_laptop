@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSpring, animated } from '@react-spring/web'
 import html2canvas from 'html2canvas'
+import JSZip from 'jszip'
 import LoginPage from './LoginPage'
 
 // App title constant
@@ -98,6 +99,7 @@ function App() {
   const captureCounterRef = useRef(0)  // Tracks total captures ever made (never decreases)
   const musicSliderRef = useRef(null)
   const frameCounterRef = useRef(0)  // Tracks frame number for animated grain
+  const isCapturingRef = useRef(false)  // Prevent concurrent captures
 
   // State for overlay positioning
   const [offsetX, setOffsetX] = useState(() => {
@@ -202,6 +204,10 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
     return saved ? JSON.parse(saved) : true
   })
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [showStorageLimitModal, setShowStorageLimitModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isSavingZip, setIsSavingZip] = useState(false)
+  const [showSaveAllModal, setShowSaveAllModal] = useState(false)
 
   // Fade in animation
   const fadeProps = useSpring({ opacity: 1, from: { opacity: 0 } })
@@ -1093,30 +1099,44 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
 
   // Capture and save canvas as image to local memory
   const capturePhoto = async () => {
+    // Prevent concurrent captures (ignore spam clicks)
+    if (isCapturingRef.current) {
+      console.log('Capture already in progress, ignoring additional click')
+      return
+    }
+
     if (!canvasRef.current) {
       console.error('Canvas ref not available')
       return
     }
 
-    // Play camera snap sound immediately
-    if (cameraSnapAudioRef.current) {
-      cameraSnapAudioRef.current.currentTime = 0
-      cameraSnapAudioRef.current.play().catch((error) => {
-        console.log('Could not play camera snap sound:', error)
-      })
-    }
+    isCapturingRef.current = true
 
-    // Show capture notification immediately for instant feedback
-    setCaptureNotification(true)
-    setCaptureMessageIndex((prevIndex) => (prevIndex + 1) % CAPTURE_MESSAGES.length)
-    setTimeout(() => setCaptureNotification(false), 2000)
-
-    // Increment capture counter immediately
-    captureCounterRef.current += 1
-    localStorage.setItem('captureCounter', captureCounterRef.current.toString())
-
-    // Compress image in background (non-blocking)
     try {
+      // Check if storage limit reached (50 images max)
+      if (capturedImages.length >= 50) {
+        setShowStorageLimitModal(true)
+        return
+      }
+
+      // Play camera snap sound immediately
+      if (cameraSnapAudioRef.current) {
+        cameraSnapAudioRef.current.currentTime = 0
+        cameraSnapAudioRef.current.play().catch((error) => {
+          console.log('Could not play camera snap sound:', error)
+        })
+      }
+
+      // Show capture notification immediately for instant feedback
+      setCaptureNotification(true)
+      setCaptureMessageIndex((prevIndex) => (prevIndex + 1) % CAPTURE_MESSAGES.length)
+      setTimeout(() => setCaptureNotification(false), 2000)
+
+      // Increment capture counter immediately
+      captureCounterRef.current += 1
+      localStorage.setItem('captureCounter', captureCounterRef.current.toString())
+
+      // Compress image in background (non-blocking)
       const dataUrl = await compressCanvasToJpeg(canvasRef.current, 0.75)
       
       if (!dataUrl) {
@@ -1161,6 +1181,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
       setImageCount(updatedImages.length)
     } catch (error) {
       console.error('Error during capture:', error)
+    } finally {
+      isCapturingRef.current = false
     }
   }
 
@@ -1291,6 +1313,94 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
   const cancelDeleteImage = () => {
     playClickSound()
     setImageToDelete(null)
+  }
+
+  // Delete all images
+  const handleDeleteAllImages = () => {
+    playClickSound()
+    setCapturedImages([])
+    localStorage.setItem('capturedImages', JSON.stringify([]))
+    setSelectedImage(null)
+    setDownloadsPage(0)
+    setShowStorageLimitModal(false)
+    setShowDeleteConfirm(false)
+    console.log('All images deleted!')
+  }
+
+  // Save all images as ZIP without deleting
+  const handleSaveAllAsZip = async () => {
+    playClickSound()
+    setIsSavingZip(true)
+    try {
+      const zip = new JSZip()
+      const folder = zip.folder('michonne_captures')
+
+      // Add each image to the ZIP
+      for (let i = 0; i < capturedImages.length; i++) {
+        const image = capturedImages[i]
+        const base64Data = image.dataUrl.split(',')[1]
+        folder.file(`${image.name}.jpg`, base64Data, { base64: true })
+      }
+
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      
+      // Download ZIP file
+      const url = URL.createObjectURL(zipBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `michonne_captures_${Date.now()}.zip`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      // Close modal after successful download
+      setShowSaveAllModal(false)
+    } catch (error) {
+      console.error('Error creating ZIP file:', error)
+      alert('Error creating ZIP file. Please try again.')
+    } finally {
+      setIsSavingZip(false)
+    }
+  }
+
+  // Save all images as ZIP then delete
+  const handleSaveAsZipThenDelete = async () => {
+    playClickSound()
+    setIsSavingZip(true)
+    try {
+      const zip = new JSZip()
+      const folder = zip.folder('michonne_captures')
+
+      // Add each image to the ZIP
+      for (let i = 0; i < capturedImages.length; i++) {
+        const image = capturedImages[i]
+        const base64Data = image.dataUrl.split(',')[1]
+        folder.file(`${image.name}.jpg`, base64Data, { base64: true })
+      }
+
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      
+      // Download ZIP file
+      const url = URL.createObjectURL(zipBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `michonne_captures_${Date.now()}.zip`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      // Delete all images after successful download
+      handleDeleteAllImages()
+    } catch (error) {
+      console.error('Error creating ZIP file:', error)
+      alert('Error creating ZIP file. Please try again.')
+    } finally {
+      setIsSavingZip(false)
+    }
   }
 
   // Handle music player toggle
@@ -2701,9 +2811,29 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
           >
             <h1 style={{ margin: '2px 4px', fontSize: '14px', fontWeight: 'bold' }}>Downloads ⋆｡°✩</h1>
             <button 
-              onClick={handleCloseDownloads}
+              onClick={() => {
+                playClickSound()
+                setShowSaveAllModal(true)
+              }}
               style={{
                 marginLeft: 'auto',
+                padding: '2px 6px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                outline: 'none',
+                backgroundColor: '#c0c0c0',
+                border: '2px solid',
+                borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                fontSize: '11px',
+                color: '#000080'
+              }}
+            >
+              💾 Save All
+            </button>
+            <button 
+              onClick={handleCloseDownloads}
+              style={{
+                marginLeft: '8px',
                 padding: '2px 6px',
                 cursor: 'pointer',
                 fontWeight: 'bold',
@@ -2721,14 +2851,22 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
             overflowY: 'auto',
             padding: '4px',
             display: 'flex',
-            flexWrap: 'wrap',
+            flexWrap: 'nowrap',
             alignContent: 'flex-start',
-            gap: '10px'
+            gap: '5px'
           }}>
             {(() => {
-              const itemsPerPage = 5
-              const startIdx = downloadsPage * itemsPerPage
-              const endIdx = startIdx + itemsPerPage
+              // Calculate items that fit horizontally
+              const downloadWindowWidth = 600
+              const containerPadding = 8 // 4px on each side
+              const itemGap = 5
+              const availableWidth = downloadWindowWidth - containerPadding
+              const itemsPerRow = Math.max(1, Math.floor(availableWidth / 80))
+              const totalGapWidth = (itemsPerRow - 1) * itemGap
+              const itemWidth = (availableWidth - totalGapWidth) / itemsPerRow
+              
+              const startIdx = downloadsPage * itemsPerRow
+              const endIdx = startIdx + itemsPerRow
               const pageImages = capturedImages.slice(startIdx, endIdx)
               
               return pageImages.map((image) => (
@@ -2740,7 +2878,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                     alignItems: 'center',
                     gap: '4px',
                     padding: '4px',
-                    minWidth: '70px',
+                    width: `${itemWidth}px`,
+                    flex: '0 1 auto',
                     textAlign: 'center',
                     borderRadius: '2px',
                     transition: 'background 0.1s',
@@ -2785,7 +2924,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                     />
                   </div>
                   <div style={{
-                    fontSize: '10px',
+                    fontSize: '7.5px',
                     fontFamily: 'Arial, sans-serif',
                     wordBreak: 'break-all'
                   }}>
@@ -2830,21 +2969,57 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
               fontSize: '12px',
               whiteSpace: 'nowrap'
             }}>
-              {capturedImages.length === 0 ? 'No images' : `Page ${downloadsPage + 1}/${Math.ceil(capturedImages.length / 5)}`}
+              {(() => {
+                const downloadWindowWidth = 600
+                const itemWidth = 80
+                const containerPadding = 8
+                const availableWidth = downloadWindowWidth - containerPadding
+                const itemsPerRow = Math.max(1, Math.floor(availableWidth / itemWidth))
+                const maxPages = Math.ceil(capturedImages.length / itemsPerRow)
+                return capturedImages.length === 0 ? 'No images' : `Page ${downloadsPage + 1}/${maxPages}`
+              })()}
             </span>
             <button
               onClick={() => {
                 playClickSound()
                 setDownloadsPage(downloadsPage + 1)
               }}
-              disabled={(downloadsPage + 1) * 5 >= capturedImages.length}
+              disabled={(() => {
+                const downloadWindowWidth = 600
+                const itemWidth = 80
+                const containerPadding = 8
+                const availableWidth = downloadWindowWidth - containerPadding
+                const itemsPerRow = Math.max(1, Math.floor(availableWidth / itemWidth))
+                return (downloadsPage + 1) * itemsPerRow >= capturedImages.length
+              })()}
               style={{
                 padding: '2px 6px',
-                cursor: (downloadsPage + 1) * 5 >= capturedImages.length ? 'not-allowed' : 'pointer',
+                cursor: (() => {
+                  const downloadWindowWidth = 600
+                  const itemWidth = 80
+                  const containerPadding = 8
+                  const availableWidth = downloadWindowWidth - containerPadding
+                  const itemsPerRow = Math.max(1, Math.floor(availableWidth / itemWidth))
+                  return (downloadsPage + 1) * itemsPerRow >= capturedImages.length ? 'not-allowed' : 'pointer'
+                })(),
                 fontWeight: 'bold',
-                backgroundColor: (downloadsPage + 1) * 5 >= capturedImages.length ? '#a0a0a0' : '#c0c0c0',
+                backgroundColor: (() => {
+                  const downloadWindowWidth = 600
+                  const itemWidth = 80
+                  const containerPadding = 8
+                  const availableWidth = downloadWindowWidth - containerPadding
+                  const itemsPerRow = Math.max(1, Math.floor(availableWidth / itemWidth))
+                  return (downloadsPage + 1) * itemsPerRow >= capturedImages.length ? '#a0a0a0' : '#c0c0c0'
+                })(),
                 border: '2px solid',
-                borderColor: (downloadsPage + 1) * 5 >= capturedImages.length ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf',
+                borderColor: (() => {
+                  const downloadWindowWidth = 600
+                  const itemWidth = 80
+                  const containerPadding = 8
+                  const availableWidth = downloadWindowWidth - containerPadding
+                  const itemsPerRow = Math.max(1, Math.floor(availableWidth / itemWidth))
+                  return (downloadsPage + 1) * itemsPerRow >= capturedImages.length ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf'
+                })(),
                 fontSize: '12px'
               }}
             >
@@ -3222,9 +3397,9 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
             overflowY: 'auto',
             padding: '4px',
             display: 'flex',
-            flexWrap: 'wrap',
+            flexWrap: 'nowrap',
             alignContent: 'flex-start',
-            gap: '10px'
+            gap: '5px'
           }}>
             {trashedImages.length === 0 ? (
               <div style={{
@@ -3238,9 +3413,17 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
               </div>
             ) : (
               (() => {
-                const itemsPerPage = 5
-                const startIdx = trashPage * itemsPerPage
-                const endIdx = startIdx + itemsPerPage
+                // Calculate items that fit horizontally
+                const trashWindowWidth = 600
+                const containerPadding = 8 // 4px on each side
+                const itemGap = 5
+                const availableWidth = trashWindowWidth - containerPadding
+                const itemsPerRow = Math.max(1, Math.floor(availableWidth / 80))
+                const totalGapWidth = (itemsPerRow - 1) * itemGap
+                const itemWidth = (availableWidth - totalGapWidth) / itemsPerRow
+                
+                const startIdx = trashPage * itemsPerRow
+                const endIdx = startIdx + itemsPerRow
                 const pageImages = trashedImages.slice(startIdx, endIdx)
                 
                 return pageImages.map((image) => (
@@ -3252,7 +3435,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                       alignItems: 'center',
                       gap: '4px',
                       padding: '4px',
-                      minWidth: '70px',
+                      width: `${itemWidth}px`,
+                      flex: '0 1 auto',
                       textAlign: 'center',
                       borderRadius: '2px',
                       transition: 'background 0.1s',
@@ -3299,7 +3483,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                       />
                     </div>
                     <div style={{
-                      fontSize: '10px',
+                      fontSize: '7px',
                       fontFamily: 'Arial, sans-serif',
                       wordBreak: 'break-all'
                     }}>
@@ -3345,21 +3529,57 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
               fontSize: '12px',
               whiteSpace: 'nowrap'
             }}>
-              {trashedImages.length === 0 ? 'No images' : `Page ${trashPage + 1}/${Math.ceil(trashedImages.length / 5)}`}
+              {(() => {
+                const trashWindowWidth = 600
+                const itemWidth = 80
+                const containerPadding = 8
+                const availableWidth = trashWindowWidth - containerPadding
+                const itemsPerRow = Math.max(1, Math.floor(availableWidth / itemWidth))
+                const maxPages = Math.ceil(trashedImages.length / itemsPerRow)
+                return trashedImages.length === 0 ? 'No images' : `Page ${trashPage + 1}/${maxPages}`
+              })()}
             </span>
             <button
               onClick={() => {
                 playClickSound()
                 setTrashPage(trashPage + 1)
               }}
-              disabled={(trashPage + 1) * 5 >= trashedImages.length}
+              disabled={(() => {
+                const trashWindowWidth = 600
+                const itemWidth = 80
+                const containerPadding = 8
+                const availableWidth = trashWindowWidth - containerPadding
+                const itemsPerRow = Math.max(1, Math.floor(availableWidth / itemWidth))
+                return (trashPage + 1) * itemsPerRow >= trashedImages.length
+              })()}
               style={{
                 padding: '2px 6px',
-                cursor: (trashPage + 1) * 5 >= trashedImages.length ? 'not-allowed' : 'pointer',
+                cursor: (() => {
+                  const trashWindowWidth = 600
+                  const itemWidth = 80
+                  const containerPadding = 8
+                  const availableWidth = trashWindowWidth - containerPadding
+                  const itemsPerRow = Math.max(1, Math.floor(availableWidth / itemWidth))
+                  return (trashPage + 1) * itemsPerRow >= trashedImages.length ? 'not-allowed' : 'pointer'
+                })(),
                 fontWeight: 'bold',
-                backgroundColor: (trashPage + 1) * 5 >= trashedImages.length ? '#a0a0a0' : '#c0c0c0',
+                backgroundColor: (() => {
+                  const trashWindowWidth = 600
+                  const itemWidth = 80
+                  const containerPadding = 8
+                  const availableWidth = trashWindowWidth - containerPadding
+                  const itemsPerRow = Math.max(1, Math.floor(availableWidth / itemWidth))
+                  return (trashPage + 1) * itemsPerRow >= trashedImages.length ? '#a0a0a0' : '#c0c0c0'
+                })(),
                 border: '2px solid',
-                borderColor: (trashPage + 1) * 5 >= trashedImages.length ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf',
+                borderColor: (() => {
+                  const trashWindowWidth = 600
+                  const itemWidth = 80
+                  const containerPadding = 8
+                  const availableWidth = trashWindowWidth - containerPadding
+                  const itemsPerRow = Math.max(1, Math.floor(availableWidth / itemWidth))
+                  return (trashPage + 1) * itemsPerRow >= trashedImages.length ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf'
+                })(),
                 fontSize: '12px'
               }}
             >
@@ -3835,7 +4055,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                       borderColor: '#1b9fff #0a4a99 #0a4a99 #1b9fff',
                       textShadow: '1px 1px 1px rgba(0,0,0,0.5)',
                       minWidth: '100px',
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      outline: 'none'
                     }}
                   >
                     Save
@@ -3857,7 +4078,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                       borderColor: '#ff4444 #800000 #800000 #ff4444',
                       textShadow: '1px 1px 1px rgba(0,0,0,0.5)',
                       minWidth: '100px',
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      outline: 'none'
                     }}
                   >
                     Delete
@@ -4040,8 +4262,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                     style={{
                       maxWidth: '100%',
                       maxHeight: '100%',
-                      objectFit: 'contain',
-                      opacity: 0.8
+                      objectFit: 'contain'
                     }}
                   />
 
@@ -4090,6 +4311,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
+                      playClickSound()
                       restoreImageFromTrash(selectedTrashImage.id)
                     }}
                     style={{
@@ -4103,7 +4325,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                       borderColor: '#1b9fff #0a4a99 #0a4a99 #1b9fff',
                       textShadow: '1px 1px 1px rgba(0,0,0,0.5)',
                       minWidth: '100px',
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      outline: 'none'
                     }}
                   >
                     Restore
@@ -4125,7 +4348,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                       borderColor: '#ff4444 #800000 #800000 #ff4444',
                       textShadow: '1px 1px 1px rgba(0,0,0,0.5)',
                       minWidth: '100px',
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      outline: 'none'
                     }}
                   >
                     Delete Forever
@@ -4321,7 +4545,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                   setShowSaveOptions(false)
                 }}
                 style={{
-                  background: 'linear-gradient(to bottom, #dfdfdf, #808080)',
+                  backgroundColor: '#d85c5c',
                   border: '1px solid',
                   borderColor: '#ffffff #000000 #000000 #ffffff',
                   width: '16px',
@@ -4333,7 +4557,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  outline: 'none'
+                  outline: 'none',
+                  color: '#ffffff'
                 }}
               >
                 ×
@@ -4568,6 +4793,268 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
           </div>
         )}
       </div>
+
+      {/* Storage Limit Modal */}
+      {showStorageLimitModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }}>
+          <div style={{
+            backgroundColor: '#c0c0c0',
+            border: '2px solid',
+            borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+            boxShadow: '1px 1px 0 #ffffff, -1px -1px 0 #404040, inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080',
+            width: '450px',
+            padding: '10px',
+            fontFamily: 'MS Sans Serif, Arial, sans-serif',
+            fontSize: '11px'
+          }}>
+            {/* Title bar */}
+            <div style={{
+              background: 'linear-gradient(to right, #000080, #1084d7)',
+              color: '#ffff00',
+              padding: '2px 4px',
+              marginBottom: '10px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginLeft: '-10px',
+              marginRight: '-10px',
+              marginTop: '-10px',
+              paddingLeft: '4px',
+              paddingRight: '4px'
+            }}>
+              <div style={{ fontWeight: 'bold' }}>⚠️ Storage Capacity Reached</div>
+              <button
+                onClick={() => setShowStorageLimitModal(false)}
+                style={{
+                  padding: '2px 6px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  backgroundColor: '#d85c5c',
+                  border: 'none',
+                  outline: 'none',
+                  color: '#ffffff'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{ marginBottom: '15px', lineHeight: '1.6' }}>
+              <p>You have reached the 50 image local storage capacity.</p>
+              <p>Please choose one of the following options:</p>
+            </div>
+
+            {/* Options: Delete All or Save as ZIP */}
+            {!showDeleteConfirm && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button
+                  onClick={() => {
+                    playClickSound()
+                    setShowDeleteConfirm(true)
+                  }}
+                  disabled={isSavingZip}
+                  style={{
+                    padding: '10px',
+                    cursor: isSavingZip ? 'not-allowed' : 'pointer',
+                    backgroundColor: '#c0c0c0',
+                    border: '2px solid',
+                    borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                    fontWeight: 'bold',
+                    fontSize: '11px',
+                    opacity: isSavingZip ? 0.6 : 1,
+                    textAlign: 'left',
+                    paddingLeft: '12px',
+                    color: '#000080'
+                  }}
+                >
+                  🗑️ Delete All Downloads
+                </button>
+                <button
+                  onClick={handleSaveAsZipThenDelete}
+                  disabled={isSavingZip}
+                  style={{
+                    padding: '10px',
+                    cursor: isSavingZip ? 'not-allowed' : 'pointer',
+                    backgroundColor: '#c0c0c0',
+                    border: '2px solid',
+                    borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                    fontWeight: 'bold',
+                    fontSize: '11px',
+                    opacity: isSavingZip ? 0.6 : 1,
+                    textAlign: 'left',
+                    paddingLeft: '12px',
+                    color: '#000080'
+                  }}
+                >
+                  {isSavingZip ? '⏳ Creating ZIP...' : '💾 Save as ZIP then Delete'}
+                </button>
+              </div>
+            )}
+
+            {/* Delete Confirmation */}
+            {showDeleteConfirm && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <p>Are you sure you want to delete all images? This cannot be undone.</p>
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <button
+                    onClick={() => {
+                      playClickSound()
+                      setShowDeleteConfirm(false)
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      cursor: 'pointer',
+                      backgroundColor: '#c0c0c0',
+                      border: '2px solid',
+                      borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                      fontWeight: 'bold',
+                      fontSize: '11px',
+                      color: '#000080'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteAllImages}
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      cursor: 'pointer',
+                      backgroundColor: '#d85c5c',
+                      border: '2px solid',
+                      borderColor: '#ffffff #404040 #404040 #ffffff',
+                      fontWeight: 'bold',
+                      fontSize: '11px',
+                      color: '#ffffff'
+                    }}
+                  >
+                    Delete All
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Save All Modal */}
+      {showSaveAllModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }}>
+          <div style={{
+            backgroundColor: '#c0c0c0',
+            border: '2px solid',
+            borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+            boxShadow: '1px 1px 0 #ffffff, -1px -1px 0 #404040, inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080',
+            width: '400px',
+            padding: '10px',
+            fontFamily: 'MS Sans Serif, Arial, sans-serif',
+            fontSize: '11px'
+          }}>
+            {/* Title bar */}
+            <div style={{
+              background: 'linear-gradient(to right, #000080, #1084d7)',
+              color: '#ffff00',
+              padding: '2px 4px',
+              marginBottom: '10px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginLeft: '-10px',
+              marginRight: '-10px',
+              marginTop: '-10px',
+              paddingLeft: '4px',
+              paddingRight: '4px'
+            }}>
+              <div style={{ fontWeight: 'bold' }}>💾 Save All Images</div>
+              <button
+                onClick={() => setShowSaveAllModal(false)}
+                style={{
+                  padding: '2px 6px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  backgroundColor: '#d85c5c',
+                  border: 'none',
+                  outline: 'none',
+                  color: '#ffffff'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{ marginBottom: '15px', lineHeight: '1.6' }}>
+              <p>Save all images into a folder</p>
+              <p style={{ fontSize: '10px', color: '#333' }}>Your images will be downloaded as a ZIP file containing all {capturedImages.length} image(s).</p>
+            </div>
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '5px' }}>
+              <button
+                onClick={() => {
+                  playClickSound()
+                  setShowSaveAllModal(false)
+                }}
+                style={{
+                  flex: 1,
+                  padding: '6px 10px',
+                  cursor: 'pointer',
+                  backgroundColor: '#c0c0c0',
+                  border: '2px solid',
+                  borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                  fontWeight: 'bold',
+                  fontSize: '11px',
+                  color: '#000080'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAllAsZip}
+                disabled={isSavingZip || capturedImages.length === 0}
+                style={{
+                  flex: 1,
+                  padding: '6px 10px',
+                  cursor: isSavingZip || capturedImages.length === 0 ? 'not-allowed' : 'pointer',
+                  backgroundColor: '#c0c0c0',
+                  border: '2px solid',
+                  borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                  fontWeight: 'bold',
+                  fontSize: '11px',
+                  color: '#000080',
+                  opacity: isSavingZip || capturedImages.length === 0 ? 0.6 : 1
+                }}
+              >
+                {isSavingZip ? '⏳ Creating ZIP...' : '💾 Download ZIP'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Audio elements */}
       <audio ref={clickAudioRef} src={clickSound} />
