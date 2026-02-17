@@ -34,6 +34,14 @@ import fullBinImg from './assets/Recycle_bin_full.webp'
 import trashSound from './assets/trash.mp3'
 import heartFilterImg from './assets/heart_filter.png'
 import armpitImg from './assets/armpit.png'
+import septumImg from './assets/septum.png'
+import eyebrowImg from './assets/eyebrow.png'
+import lipImg from './assets/lip.png'
+import labretImg from './assets/chin.png'
+import noseStudImg from './assets/nose_stud.png'
+import spikeImg from './assets/spike.png'
+import bridgeImg from './assets/spike.png' // TODO: Replace with bridge.png when available
+import studImg from './assets/stud.png'
 import profilePicture from './assets/profile_picture.png'
 import windowsStartImg from './assets/windows_start.png'
 import letterboxdLogo from './assets/letterboxd_logo.png'
@@ -89,6 +97,14 @@ function App() {
   const heartFilterRef = useRef(null)
   const bloodSplatterRef = useRef(null)
   const borderRef = useRef(null)
+  const septumRef = useRef(null)
+  const eyebrowRef = useRef(null)
+  const lipRef = useRef(null)
+  const labretRef = useRef(null)
+  const noseStudRef = useRef(null)
+  const spikeRef = useRef(null)
+  const bridgeRef = useRef(null)
+  const eyeGemRef = useRef(null)
   const faceLandmarkerRef = useRef(null)
   const animationIdRef = useRef(null)
   const clickAudioRef = useRef(null)
@@ -100,6 +116,7 @@ function App() {
   const musicSliderRef = useRef(null)
   const frameCounterRef = useRef(0)  // Tracks frame number for animated grain
   const isCapturingRef = useRef(false)  // Prevent concurrent captures
+  const piercingAdjustmentsRef = useRef({})
 
   // State for overlay positioning
   const [offsetX, setOffsetX] = useState(() => {
@@ -132,6 +149,18 @@ function App() {
   const [imageToDelete, setImageToDelete] = useState(null)
   const [downloadsPage, setDownloadsPage] = useState(0)
   const [trashPage, setTrashPage] = useState(0)
+  const [piercingPage, setPiercingPage] = useState(0)
+  const [addOnPage, setAddOnPage] = useState(0)
+  const [showPiercingControls, setShowPiercingControls] = useState(false)
+  const [piercingAdjustments, setPiercingAdjustments] = useState(() => {
+    const saved = localStorage.getItem('piercingAdjustments')
+    const parsed = saved ? JSON.parse(saved) : {}
+    // Set eye gem defaults if not already set
+    if (!parsed.hasOwnProperty('piercing_eyeGem_offsetX')) parsed['piercing_eyeGem_offsetX'] = 0
+    if (!parsed.hasOwnProperty('piercing_eyeGem_offsetY')) parsed['piercing_eyeGem_offsetY'] = -20
+    if (!parsed.hasOwnProperty('piercing_eyeGem_scale')) parsed['piercing_eyeGem_scale'] = 1.9
+    return parsed
+  })
   const [captureNotification, setCaptureNotification] = useState(null)
   const [captureMessageIndex, setCaptureMessageIndex] = useState(0)
   const [showMusicPlayer, setShowMusicPlayer] = useState(false)
@@ -155,6 +184,7 @@ function App() {
   })
   const [showTimerDropdown, setShowTimerDropdown] = useState(false)
   const [countdownValue, setCountdownValue] = useState(0)
+  const [isCapturing, setIsCapturing] = useState(false)
   const bgMusicRef = useRef(null)
   const imageModalRef = useRef(null)
   const countdownIntervalRef = useRef(null)
@@ -166,6 +196,7 @@ function App() {
 const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
   const [musicPlayerPos, setMusicPlayerPos] = useState({ x: 1200, y: 480 })
   const [controlsWindowPos, setControlsWindowPos] = useState({ x: 310, y: 15 })
+  const [piercingControlsPos, setPiercingControlsPos] = useState({ x: 310, y: 15 })
   const [trashPos, setTrashPos] = useState({ x: 250, y: 650 })
   const [purplePalacePos, setPurplePalacePos] = useState({ x: 880, y: 550 })
   const [captureNotificationPos, setCaptureNotificationPos] = useState({ x: 700, y: 200 })
@@ -183,9 +214,9 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
     const saved = localStorage.getItem('useHeartFilter')
     return saved ? JSON.parse(saved) : false
   })
-  const [use4Grid, setUse4Grid] = useState(() => {
-    const saved = localStorage.getItem('use4Grid')
-    return saved ? JSON.parse(saved) : false
+  const [currentView, setCurrentView] = useState(() => {
+    const saved = localStorage.getItem('currentView')
+    return saved ? JSON.parse(saved) : 'normal'
   })
   const [useBloodSplatter, setUseBloodSplatter] = useState(() => {
     const saved = localStorage.getItem('useBloodSplatter')
@@ -202,6 +233,38 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
   const [showMichonneOverlay, setShowMichonneOverlay] = useState(() => {
     const saved = localStorage.getItem('showMichonneOverlay')
     return saved ? JSON.parse(saved) : true
+  })
+  const [useSeptum, setUseSeptum] = useState(() => {
+    const saved = localStorage.getItem('useSeptum')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [useEyebrow, setUseEyebrow] = useState(() => {
+    const saved = localStorage.getItem('useEyebrow')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [useLip, setUseLip] = useState(() => {
+    const saved = localStorage.getItem('useLip')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [useLabret, setUseLabret] = useState(() => {
+    const saved = localStorage.getItem('useLabret')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [useNoseStud, setUseNoseStud] = useState(() => {
+    const saved = localStorage.getItem('useNoseStud')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [useSpike, setUseSpike] = useState(() => {
+    const saved = localStorage.getItem('useSpike')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [useBridge, setUseBridge] = useState(() => {
+    const saved = localStorage.getItem('useBridge')
+    return saved ? JSON.parse(saved) : false
+  })
+  const [useEyeGem, setUseEyeGem] = useState(() => {
+    const saved = localStorage.getItem('useEyeGem')
+    return saved ? JSON.parse(saved) : false
   })
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showStorageLimitModal, setShowStorageLimitModal] = useState(false)
@@ -278,6 +341,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
         if (positions.downloadsPos) setDownloadsPos(positions.downloadsPos)
         if (positions.musicPlayerPos) setMusicPlayerPos(positions.musicPlayerPos)
         if (positions.controlsWindowPos) setControlsWindowPos(positions.controlsWindowPos)
+        if (positions.piercingControlsPos) setPiercingControlsPos(positions.piercingControlsPos)
         if (positions.trashPos) setTrashPos(positions.trashPos)
         if (positions.purplePalacePos) setPurplePalacePos(positions.purplePalacePos)
         if (positions.captureNotificationPos) setCaptureNotificationPos(positions.captureNotificationPos)
@@ -309,17 +373,18 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
       downloadsPos,
       musicPlayerPos,
       controlsWindowPos,
+      piercingControlsPos,
       trashPos,
       purplePalacePos,
       captureNotificationPos,
     }
     sessionStorage.setItem('windowPositions', JSON.stringify(windowPositions))
-  }, [kissCamPos, downloadsPos, musicPlayerPos, controlsWindowPos, trashPos, purplePalacePos, captureNotificationPos])
+  }, [kissCamPos, downloadsPos, musicPlayerPos, controlsWindowPos, piercingControlsPos, trashPos, purplePalacePos, captureNotificationPos])
 
-  // Persist 4-grid toggle to localStorage
+  // Persist view option to localStorage
   useEffect(() => {
-    localStorage.setItem('use4Grid', JSON.stringify(use4Grid))
-  }, [use4Grid])
+    localStorage.setItem('currentView', JSON.stringify(currentView))
+  }, [currentView])
 
   // Persist heart filter toggle to localStorage
   useEffect(() => {
@@ -346,10 +411,55 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
     localStorage.setItem('showMichonneOverlay', JSON.stringify(showMichonneOverlay))
   }, [showMichonneOverlay])
 
+  // Persist septum piercing toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('useSeptum', JSON.stringify(useSeptum))
+  }, [useSeptum])
+
+  // Persist eyebrow piercing toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('useEyebrow', JSON.stringify(useEyebrow))
+  }, [useEyebrow])
+
+  // Persist lip piercing toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('useLip', JSON.stringify(useLip))
+  }, [useLip])
+
+  // Persist labret piercing toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('useLabret', JSON.stringify(useLabret))
+  }, [useLabret])
+
+  // Persist nose stud piercing toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('useNoseStud', JSON.stringify(useNoseStud))
+  }, [useNoseStud])
+
+  // Persist spike piercing toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('useSpike', JSON.stringify(useSpike))
+  }, [useSpike])
+
+  // Persist bridge piercing toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('useBridge', JSON.stringify(useBridge))
+  }, [useBridge])
+
+  // Persist eyes piercing toggle to localStorage
+  useEffect(() => {
+    localStorage.setItem('useEyeGem', JSON.stringify(useEyeGem))
+  }, [useEyeGem])
+
   // Keep imageCountRef in sync with imageCount state
   useEffect(() => {
     imageCountRef.current = imageCount
   }, [imageCount])
+
+  // Keep piercingAdjustmentsRef in sync with piercingAdjustments state
+  useEffect(() => {
+    piercingAdjustmentsRef.current = piercingAdjustments
+  }, [piercingAdjustments])
 
   // Ensure Controls stays closed when logged in
   useEffect(() => {
@@ -542,6 +652,79 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
     }
     splatterImg.onerror = () => {
       console.error('Failed to load blood splatter image')
+    }
+
+    // Load piercing images
+    const septumImage = new Image()
+    septumImage.src = septumImg
+    septumImage.onload = () => {
+      septumRef.current = septumImage
+    }
+    septumImage.onerror = () => {
+      console.error('Failed to load septum piercing image')
+    }
+
+    const eyebrowImage = new Image()
+    eyebrowImage.src = eyebrowImg
+    eyebrowImage.onload = () => {
+      eyebrowRef.current = eyebrowImage
+    }
+    eyebrowImage.onerror = () => {
+      console.error('Failed to load eyebrow piercing image')
+    }
+
+    const lipImage = new Image()
+    lipImage.src = lipImg
+    lipImage.onload = () => {
+      lipRef.current = lipImage
+    }
+    lipImage.onerror = () => {
+      console.error('Failed to load lip piercing image')
+    }
+
+    const labretImage = new Image()
+    labretImage.src = labretImg
+    labretImage.onload = () => {
+      labretRef.current = labretImage
+    }
+    labretImage.onerror = () => {
+      console.error('Failed to load labret piercing image')
+    }
+
+    const noseStudImage = new Image()
+    noseStudImage.src = noseStudImg
+    noseStudImage.onload = () => {
+      noseStudRef.current = noseStudImage
+    }
+    noseStudImage.onerror = () => {
+      console.error('Failed to load nose stud image')
+    }
+
+    const spikeImage = new Image()
+    spikeImage.src = spikeImg
+    spikeImage.onload = () => {
+      spikeRef.current = spikeImage
+    }
+    spikeImage.onerror = () => {
+      console.error('Failed to load spike piercing image')
+    }
+
+    const bridgeImage = new Image()
+    bridgeImage.src = bridgeImg
+    bridgeImage.onload = () => {
+      bridgeRef.current = bridgeImage
+    }
+    bridgeImage.onerror = () => {
+      console.error('Failed to load bridge piercing image')
+    }
+
+    const eyeGemImage = new Image()
+    eyeGemImage.src = studImg
+    eyeGemImage.onload = () => {
+      eyeGemRef.current = eyeGemImage
+    }
+    eyeGemImage.onerror = () => {
+      console.error('Failed to load eye gem image')
     }
 
     // Preload all borders
@@ -808,6 +991,24 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
       ctx.putImageData(imageData, 0, 0)
     }
 
+    // Apply tint filter (2016 Instagram-style: warm, desaturated, vintage)
+    if (currentFilter === 'tint') {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const data = imageData.data
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i]
+        const g = data[i + 1]
+        const b = data[i + 2]
+        const gray = (r + g + b) / 3
+        
+        // 2016 filter: warm, slightly desaturated, vintage faded look
+        data[i] = Math.max(0, Math.min(255, r * 0.75 + gray * 0.25 + 15))     // Red: subtle boost
+        data[i + 1] = Math.max(0, Math.min(255, g * 0.8 + gray * 0.2 + 8))    // Green: minimal boost
+        data[i + 2] = Math.max(0, Math.min(255, b * 0.65 + gray * 0.35 - 15)) // Blue: reduced
+      }
+      ctx.putImageData(imageData, 0, 0)
+    }
+
     // Add realistic film grain texture to all frames with frame-based animation
     if (useGrain) {
       frameCounterRef.current++
@@ -874,24 +1075,27 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
       }
     }
 
-    // Draw border overlay if one is selected (skip film_frame and katana_border in 4-grid mode as they'll be drawn later)
+    // Draw border overlay if one is selected (skip in 4-grid/double modes, but always draw mothers_armpits)
     if (currentBorder !== 'none' && borderRef.current) {
-      const shouldSkipForGridMode = use4Grid && (currentBorder === 'film_frame' || currentBorder === 'katana_border')
+      const isGridOrDoubleMode = currentView === 'fourGrid' || currentView === 'double'
       const isMothersArmpits = currentBorder === 'mothers_armpits'
       
-      if (!shouldSkipForGridMode && !isMothersArmpits) {
+      // Only draw normal borders in normal view mode
+      if (!isGridOrDoubleMode && !isMothersArmpits) {
         const borderImg = borderRef.current
-        let borderScale = 1 // Full canvas size by default
+        let borderScale = 1 // Default
         let borderOpacity = 1 // Default opacity
         
-        // Make film_frame larger and reduce opacity
         if (currentBorder === 'film_frame') {
-          borderScale = 1
-          borderOpacity = 0.8 // Reduced opacity for film_frame
+          borderScale = 1.0
+          borderOpacity = 0.8
         }
         if (currentBorder === 'filter_border') {
-          borderScale = 1.25
-          borderOpacity = 1 // Reduced opacity for film_frame
+          borderScale = 1.2
+          borderOpacity = 1
+        }
+        if (currentBorder === 'katana_border') {
+          borderScale = 1.0
         }
         
         const borderWidth = canvas.width * borderScale
@@ -947,13 +1151,55 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
           const armpitWidth = armpitImg.width * finalScale
           const armpitHeight = armpitImg.height * finalScale
           
+          // Create temporary offscreen canvas for armpit with potential filter application
+          let imageToDrawArmpitFrom = armpitImg
+          
+          if (currentFilter === 'blackAndWhite' || currentFilter === 'tint') {
+            // Create temp canvas to apply filter to armpit
+            const armpitTempCanvas = document.createElement('canvas')
+            armpitTempCanvas.width = armpitImg.width
+            armpitTempCanvas.height = armpitImg.height
+            const armpitTempCtx = armpitTempCanvas.getContext('2d')
+            armpitTempCtx.drawImage(armpitImg, 0, 0)
+            
+            // Apply the selected filter
+            if (currentFilter === 'blackAndWhite') {
+              const imageData = armpitTempCtx.getImageData(0, 0, armpitTempCanvas.width, armpitTempCanvas.height)
+              const data = imageData.data
+              for (let i = 0; i < data.length; i += 4) {
+                const avg = (data[i] + data[i + 1] + data[i + 2]) / 3
+                data[i] = avg     // Red
+                data[i + 1] = avg // Green
+                data[i + 2] = avg // Blue
+              }
+              armpitTempCtx.putImageData(imageData, 0, 0)
+            } else if (currentFilter === 'tint') {
+              const imageData = armpitTempCtx.getImageData(0, 0, armpitTempCanvas.width, armpitTempCanvas.height)
+              const data = imageData.data
+              for (let i = 0; i < data.length; i += 4) {
+                const r = data[i]
+                const g = data[i + 1]
+                const b = data[i + 2]
+                const gray = (r + g + b) / 3
+                
+                // 2016 filter: warm, slightly desaturated, vintage faded look
+                data[i] = Math.max(0, Math.min(255, r * 0.75 + gray * 0.25 + 15))     // Red: subtle boost
+                data[i + 1] = Math.max(0, Math.min(255, g * 0.8 + gray * 0.2 + 8))    // Green: minimal boost
+                data[i + 2] = Math.max(0, Math.min(255, b * 0.65 + gray * 0.35 - 15)) // Blue: reduced
+              }
+              armpitTempCtx.putImageData(imageData, 0, 0)
+            }
+            
+            imageToDrawArmpitFrom = armpitTempCanvas
+          }
+          
           ctx.save()
           ctx.globalAlpha = 1
           // Position at right edge of head with rotation preserved, bottom edge touching top of head
           ctx.translate(rightEyeX, headY)
           ctx.rotate((20 * Math.PI) / 180) // Keep original rotation
           ctx.drawImage(
-            armpitImg,
+            imageToDrawArmpitFrom,
             -armpitWidth / 2,
             -armpitHeight,
             armpitWidth,
@@ -966,8 +1212,285 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
       }
     }
 
+    // Render piercings
+    const drawPiercing = (piercingImg, piercingRef, faceLandmarks, landmarkIndices, piercing) => {
+      if (!piercingImg) return
+      
+      const primaryLandmark = faceLandmarks[landmarkIndices[0]]
+      if (!primaryLandmark) return
+      
+      let { pixelX, pixelY } = normalizedToCanvasCoordinates(
+        primaryLandmark.x,
+        primaryLandmark.y,
+        canvas.width,
+        canvas.height
+      )
+      
+      // Apply offset adjustments for specific piercings
+      if (piercing === 'eyebrow') {
+        pixelY -= 6 // Move eyebrow piercing up
+      }
+      if (piercing === 'noseStud') {
+        pixelX += 8 // Move nose stud to the right
+        pixelY += 18 // Move nose stud down under the nose
+      }
+      if (piercing === 'spikeLeft') {
+        pixelY -= 8 // Move spikes up
+        pixelX -= 10 // Move left spike further left
+      }
+      if (piercing === 'spikeRight') {
+        pixelY -= 8 // Move spikes up
+        pixelX += 10 // Move right spike further right
+      }
+      if (piercing === 'bridgeLeft') {
+        pixelY -= 100 // Move bridge piercings higher up
+        pixelX -= 9 // Move left bridge piercing left (shorter distance)
+      }
+      if (piercing === 'bridgeRight') {
+        pixelY -= 100 // Move bridge piercings higher up
+        pixelX += 20 // Move right bridge piercing right (shorter distance)
+      }
+      // Eye gem positioning handled by control sliders
+      
+      // Apply stored adjustments from piercingControls
+      const piercingAdjustX = piercingAdjustmentsRef.current[`piercing_${piercing}_offsetX`] ?? 0
+      const piercingAdjustY = piercingAdjustmentsRef.current[`piercing_${piercing}_offsetY`] ?? 0
+      pixelX += piercingAdjustX
+      pixelY += piercingAdjustY
+      
+      // Calculate scale based on face size using eye distance
+      const leftEye = faceLandmarks[33]
+      const rightEye = faceLandmarks[263]
+      if (!leftEye || !rightEye) return
+      
+      const eyeDistance = Math.sqrt(
+        Math.pow(rightEye.x - leftEye.x, 2) + 
+        Math.pow(rightEye.y - leftEye.y, 2)
+      )
+      const referenceEyeDistance = 0.15
+      const proximityRatio = eyeDistance / referenceEyeDistance
+      
+      // Scale multiplier per piercing type
+      let scaleMultiplier = 1.0
+      if (piercing === 'septum') scaleMultiplier = 1.5
+      if (piercing === 'eyebrow') scaleMultiplier = 2.5
+      if (piercing === 'lip') scaleMultiplier = 2
+      if (piercing === 'labret') scaleMultiplier = 2.5
+      if (piercing === 'noseStud') scaleMultiplier = 0.4
+      if (piercing === 'spikeLeft') scaleMultiplier = 0.5
+      if (piercing === 'spikeRight') scaleMultiplier = 0.5
+      if (piercing === 'bridgeLeft') scaleMultiplier = 0.45
+      if (piercing === 'bridgeRight') scaleMultiplier = 0.45
+      if (piercing === 'eyeGem') scaleMultiplier = 0.24
+      
+      const dynamicScale = 0.05 * proximityRatio * scaleMultiplier
+      const scaleMultiplierAdjustment = piercingAdjustmentsRef.current[`piercing_${piercing}_scale`] ?? 1
+      const finalScale = Math.max(0.003, Math.min(0.25, dynamicScale * scaleMultiplierAdjustment))
+      
+      const piercingWidth = piercingImg.width * finalScale
+      const piercingHeight = piercingImg.height * finalScale
+      
+      // Apply filters to piercing if needed
+      let imageToDrawFrom = piercingImg
+      
+      if (currentFilter === 'blackAndWhite' || currentFilter === 'tint') {
+        const tempCanvas = document.createElement('canvas')
+        tempCanvas.width = piercingImg.width
+        tempCanvas.height = piercingImg.height
+        const tempCtx = tempCanvas.getContext('2d')
+        tempCtx.drawImage(piercingImg, 0, 0)
+        
+        if (currentFilter === 'blackAndWhite') {
+          const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height)
+          const data = imageData.data
+          for (let i = 0; i < data.length; i += 4) {
+            const avg = (data[i] + data[i + 1] + data[i + 2]) / 3
+            data[i] = avg
+            data[i + 1] = avg
+            data[i + 2] = avg
+          }
+          tempCtx.putImageData(imageData, 0, 0)
+        } else if (currentFilter === 'tint') {
+          const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height)
+          const data = imageData.data
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i]
+            const g = data[i + 1]
+            const b = data[i + 2]
+            const gray = (r + g + b) / 3
+            
+            data[i] = Math.max(0, Math.min(255, r * 0.75 + gray * 0.25 + 15))
+            data[i + 1] = Math.max(0, Math.min(255, g * 0.8 + gray * 0.2 + 8))
+            data[i + 2] = Math.max(0, Math.min(255, b * 0.65 + gray * 0.35 - 15))
+          }
+          tempCtx.putImageData(imageData, 0, 0)
+        }
+        
+        imageToDrawFrom = tempCanvas
+      }
+      
+      // Darken spike piercings
+      if (piercing === 'spikeLeft' || piercing === 'spikeRight') {
+        const darkenCanvas = document.createElement('canvas')
+        darkenCanvas.width = imageToDrawFrom.width
+        darkenCanvas.height = imageToDrawFrom.height
+        const darkenCtx = darkenCanvas.getContext('2d')
+        darkenCtx.drawImage(imageToDrawFrom, 0, 0)
+        
+        const imageData = darkenCtx.getImageData(0, 0, darkenCanvas.width, darkenCanvas.height)
+        const data = imageData.data
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.max(0, data[i] * 0.8)     // Darken red
+          data[i + 1] = Math.max(0, data[i + 1] * 0.8) // Darken green
+          data[i + 2] = Math.max(0, data[i + 2] * 0.8) // Darken blue
+        }
+        darkenCtx.putImageData(imageData, 0, 0)
+        imageToDrawFrom = darkenCanvas
+      }
+      
+      // Darken bridge piercings
+      if (piercing === 'bridgeLeft' || piercing === 'bridgeRight') {
+        const darkenCanvas = document.createElement('canvas')
+        darkenCanvas.width = imageToDrawFrom.width
+        darkenCanvas.height = imageToDrawFrom.height
+        const darkenCtx = darkenCanvas.getContext('2d')
+        darkenCtx.drawImage(imageToDrawFrom, 0, 0)
+        
+        const imageData = darkenCtx.getImageData(0, 0, darkenCanvas.width, darkenCanvas.height)
+        const data = imageData.data
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.max(0, data[i] * 0.9)     // Darken red
+          data[i + 1] = Math.max(0, data[i + 1] * 0.9) // Darken green
+          data[i + 2] = Math.max(0, data[i + 2] * 0.9) // Darken blue
+        }
+        darkenCtx.putImageData(imageData, 0, 0)
+        imageToDrawFrom = darkenCanvas
+      }
+      
+      // Brighten eyebrow piercing
+      if (piercing === 'eyebrow') {
+        const brightenCanvas = document.createElement('canvas')
+        brightenCanvas.width = imageToDrawFrom.width
+        brightenCanvas.height = imageToDrawFrom.height
+        const brightenCtx = brightenCanvas.getContext('2d')
+        brightenCtx.drawImage(imageToDrawFrom, 0, 0)
+        
+        const imageData = brightenCtx.getImageData(0, 0, brightenCanvas.width, brightenCanvas.height)
+        const data = imageData.data
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.min(255, data[i] * 1.3)     // Brighten red
+          data[i + 1] = Math.min(255, data[i + 1] * 1.3) // Brighten green
+          data[i + 2] = Math.min(255, data[i + 2] * 1.3) // Brighten blue
+        }
+        brightenCtx.putImageData(imageData, 0, 0)
+        imageToDrawFrom = brightenCanvas
+      }
+      
+      ctx.save()
+      ctx.globalAlpha = 1
+      ctx.translate(pixelX, pixelY)
+      
+      // Apply rotation if specified
+      const rotation = (piercingAdjustmentsRef.current[`piercing_${piercing}_rotate`] ?? 0) * Math.PI / 180
+      if (rotation !== 0) {
+        ctx.rotate(rotation)
+      }
+      
+      // Flip left spike and right bridge horizontally
+      if (piercing === 'spikeLeft' || piercing === 'bridgeRight') {
+        ctx.scale(-1, 1)
+      }
+      
+      ctx.drawImage(
+        imageToDrawFrom,
+        -piercingWidth / 2,
+        -piercingHeight / 2,
+        piercingWidth,
+        piercingHeight
+      )
+      ctx.restore()
+    }
+
+    // Reset canvas state before drawing piercings
+    ctx.globalAlpha = 1.0
+
+    if (allDetectedFaces.length > 0) {
+      try {
+        allDetectedFaces.forEach((faceLandmarks) => {
+          // Reset globalAlpha before drawing each piercing
+          ctx.globalAlpha = 1.0
+          
+          // Septum piercing under nose (landmark 2 = nose tip center)
+          if (useSeptum && septumRef.current) {
+            drawPiercing(septumRef.current, septumRef, faceLandmarks, [2], 'septum')
+          }
+          
+          ctx.globalAlpha = 1.0
+          
+          // Eyebrow piercing on right eyebrow (landmark 282 = right eyebrow inner)
+          if (useEyebrow && eyebrowRef.current) {
+            drawPiercing(eyebrowRef.current, eyebrowRef, faceLandmarks, [282], 'eyebrow')
+          }
+          
+          ctx.globalAlpha = 1.0
+          
+          // Lip piercing on bottom lip (landmark 17 = lower lip outer edge)
+          if (useLip && lipRef.current) {
+            drawPiercing(lipRef.current, lipRef, faceLandmarks, [16], 'lip')
+          }
+          
+          ctx.globalAlpha = 1.0
+          
+          // Labret piercing under lip (landmark 18 = under lower lip)
+          if (useLabret && labretRef.current) {
+            drawPiercing(labretRef.current, labretRef, faceLandmarks, [18], 'labret')
+          }
+          
+          ctx.globalAlpha = 1.0
+          
+          // Nose Stud piercing on right nostril (landmark 429 = right nostril)
+          if (useNoseStud && noseStudRef.current) {
+            drawPiercing(noseStudRef.current, noseStudRef, faceLandmarks, [429], 'noseStud')
+          }
+          
+          ctx.globalAlpha = 1.0
+          
+          // Spike piercings on top of mouth (left and right)
+          if (useSpike && spikeRef.current) {
+            // Render left spike with custom positioning
+            drawPiercing(spikeRef.current, spikeRef, faceLandmarks, [61], 'spikeLeft')
+            ctx.globalAlpha = 1.0
+            // Right spike with custom positioning and flip
+            drawPiercing(spikeRef.current, spikeRef, faceLandmarks, [291], 'spikeRight')
+          }
+          
+          ctx.globalAlpha = 1.0
+          
+          // Bridge piercings on nose bridge (left and right, landmark 4 = nose bridge)
+          if (useBridge && bridgeRef.current) {
+            // Render left bridge piercing
+            drawPiercing(bridgeRef.current, bridgeRef, faceLandmarks, [4], 'bridgeLeft')
+            ctx.globalAlpha = 1.0
+            // Render right bridge piercing
+            drawPiercing(bridgeRef.current, bridgeRef, faceLandmarks, [4], 'bridgeRight')
+          }
+          
+          ctx.globalAlpha = 1.0
+          
+          // Eye gem under right eye (landmark 346)
+          if (useEyeGem && eyeGemRef.current) {
+            drawPiercing(eyeGemRef.current, eyeGemRef, faceLandmarks, [346], 'eyeGem')
+          }
+          
+          ctx.globalAlpha = 1.0
+        })
+      } catch (error) {
+        console.error('Piercing rendering error:', error)
+      }
+    }
+
     // If 4-grid mode: create a temporary canvas with the single frame, then tile it 4 times
-    if (use4Grid) {
+    if (currentView === 'fourGrid') {
       const tempCanvas = document.createElement('canvas')
       tempCanvas.width = canvas.width
       tempCanvas.height = canvas.height
@@ -1020,37 +1543,86 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
       ctx.fillRect(canvas.width - frameWidth / 2, 0, frameWidth / 2, canvas.height)
     }
 
-    // Draw film_frame or katana_border once across all 4 grids (if in 4-grid mode)
-    if (use4Grid && (currentBorder === 'film_frame' || currentBorder === 'katana_border') && borderRef.current) {
-      const borderImg = borderRef.current
-      let borderOpacity = 1
+    // Draw double view (stretch) if enabled
+    if (currentView === 'double') {
+      // Create temporary canvas to copy current frame
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = canvas.width
+      tempCanvas.height = canvas.height
+      const tempCtx = tempCanvas.getContext('2d')
+      tempCtx.drawImage(canvas, 0, 0)
+      
+      // Clear main canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      
+      // Draw stretched frame twice side-by-side
+      const halfWidth = canvas.width / 2
+      const stretchScaleY = 1.4
+      const stretchedHeight = canvas.height * stretchScaleY
+      const offsetY = (canvas.height - stretchedHeight) / 2
+      
+      ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height, 0, offsetY, halfWidth, stretchedHeight)
+      ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height, halfWidth, offsetY, halfWidth, stretchedHeight)
+    }
 
-      if (currentBorder === 'film_frame') {
-        borderOpacity = 0.8
+    // Draw borders AFTER grid/double view transformations (and scale down in those modes)
+    if (currentBorder !== 'none' && borderRef.current && currentBorder !== 'mothers_armpits') {
+      const isGridOrDoubleMode = currentView === 'fourGrid' || currentView === 'double'
+      
+      if (isGridOrDoubleMode) {
+        // Draw scaled borders in grid/double mode
+        const borderImg = borderRef.current
+        let borderOpacity = 1
+        let borderScale = 1.1 // Default for grid/double
+
+        if (currentBorder === 'film_frame') {
+          borderOpacity = 0.8
+          borderScale = 1.0
+        }
+        if (currentBorder === 'filter_border') {
+          borderScale = 1.3
+          borderOpacity = 1
+        }
+        if (currentBorder === 'katana_border') {
+          borderScale = 1.1
+        }
+
+        const borderWidth = canvas.width * borderScale
+        const borderHeight = canvas.height * borderScale
+        const borderX = (canvas.width - borderWidth) / 2
+        const borderY = (canvas.height - borderHeight) / 2
+
+        ctx.globalAlpha = borderOpacity
+        ctx.drawImage(borderImg, borderX, borderY, borderWidth, borderHeight)
+        ctx.globalAlpha = 1.0
       }
-
-      const borderWidth = canvas.width
-      const borderHeight = canvas.height
-
-      ctx.globalAlpha = borderOpacity
-      ctx.drawImage(borderImg, 0, 0, borderWidth, borderHeight)
-      ctx.globalAlpha = 1.0
     }
 
     // Draw blood splatter overlay if enabled (highest z-index)
-    // Single overlay across entire screen (or all 4 grids if in 4-grid mode)
     if (useBloodSplatter && bloodSplatterRef.current) {
       try {
         const splatterImg = bloodSplatterRef.current
-        const splatterScale = 1.2 // Scale to cover full screen
+        const splatterScale = 1.2 // Scale to cover screen
         const splatterWidth = canvas.width * splatterScale
         const splatterHeight = canvas.height * splatterScale
-        const splatterX = (canvas.width - splatterWidth) / 2 - 200 // Moved left by 100px
+        const splatterX = (canvas.width - splatterWidth) / 2 - 200
         const splatterY = (canvas.height - splatterHeight) / 2
 
         ctx.globalAlpha = 0.6
         ctx.globalCompositeOperation = 'multiply' // Darken blend mode
-        ctx.drawImage(splatterImg, splatterX, splatterY, splatterWidth, splatterHeight)
+        
+        if (currentView === 'double') {
+          // Draw splatter twice in double view - once for each side
+          const halfWidth = canvas.width / 2
+          // Left side splatter
+          ctx.drawImage(splatterImg, splatterX, splatterY, splatterWidth, splatterHeight)
+          // Right side splatter (offset)
+          ctx.drawImage(splatterImg, splatterX + halfWidth, splatterY, splatterWidth, splatterHeight)
+        } else {
+          // Single splatter for normal/grid view
+          ctx.drawImage(splatterImg, splatterX, splatterY, splatterWidth, splatterHeight)
+        }
+        
         ctx.globalCompositeOperation = 'source-over' // Reset to default
         ctx.globalAlpha = 1.0
       } catch (error) {
@@ -1072,7 +1644,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
         cancelAnimationFrame(animationIdRef.current)
       }
     }
-  }, [isWebcamActive, offsetX, offsetY, scale, rotation, currentFilter, use4Grid, useHeartFilter, useBloodSplatter, currentBorder, showMichonneOverlay, useGrain])
+  }, [isWebcamActive, offsetX, offsetY, scale, rotation, currentFilter, currentView, useHeartFilter, useBloodSplatter, currentBorder, showMichonneOverlay, useGrain, useSeptum, useEyebrow, useLip, useLabret, useNoseStud, useSpike, useBridge, useEyeGem, piercingAdjustments])
 
   // Compress canvas to JPEG for smaller file size
   const compressCanvasToJpeg = (canvas, quality = 0.7) => {
@@ -1111,6 +1683,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
     }
 
     isCapturingRef.current = true
+    setIsCapturing(true)
 
     try {
       // Check if storage limit reached (50 images max)
@@ -1183,6 +1756,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
       console.error('Error during capture:', error)
     } finally {
       isCapturingRef.current = false
+      setIsCapturing(false)
     }
   }
 
@@ -1194,6 +1768,35 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
         console.log('Could not play sound:', error)
       })
     }
+  }
+
+  // Color filter options and helpers
+  const colorOptions = ['normal', 'blackAndWhite', 'tint']
+  const colorLabels = ['Normal', 'B&W', 'Tint']
+
+  // View options and helpers
+  const viewOptions = ['normal', 'fourGrid', 'double']
+  const viewLabels = ['Normal', '4 Grid', 'Double']
+
+  // Helper to step through options
+  const stepOption = (currentValue, options, step) => {
+    const currentIndex = options.indexOf(currentValue)
+    const newIndex = (currentIndex + step + options.length) % options.length
+    return options[newIndex]
+  }
+
+  // Color filter step handler
+  const handleColorStep = (step) => {
+    const newFilter = stepOption(currentFilter, colorOptions, step)
+    setCurrentFilter(newFilter)
+    playClickSound()
+  }
+
+  // View step handler
+  const handleViewStep = (step) => {
+    const newView = stepOption(currentView, viewOptions, step)
+    setCurrentView(newView)
+    playClickSound()
   }
 
   // Handle capture with timer countdown
@@ -1635,7 +2238,23 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
     setConfirmClearTrash(false)
   }
 
-  // Handle window dragging
+  // Auto-hide controls when navigating to None or an unticked piercing
+  useEffect(() => {
+    const piercingStates = {
+      1: useSeptum,
+      2: useEyebrow,
+      3: useLabret,
+      4: useLip,
+      5: useSpike,
+      6: useNoseStud,
+      7: useBridge,
+      8: useEyeGem
+    }
+    if ((piercingPage === 0 || !piercingStates[piercingPage]) && showPiercingControls) {
+      setShowPiercingControls(false)
+    }
+  }, [piercingPage, useSeptum, useEyebrow, useLabret, useLip, useSpike, useNoseStud, useBridge, useEyeGem, showPiercingControls])
+
   const handleMouseDown = (e, windowType, currentPos) => {
     if (e.button !== 0) return // Only left mouse button
     const startX = e.clientX - currentPos.x
@@ -1664,6 +2283,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
           setMusicPlayerPos({ x: newX, y: newY })
         } else if (dragState.window === 'controlsWindow') {
           setControlsWindowPos({ x: newX, y: newY })
+        } else if (dragState.window === 'piercingControlsWindow') {
+          setPiercingControlsPos({ x: newX, y: newY })
         } else if (dragState.window === 'trash') {
           setTrashPos({ x: newX, y: newY })
         } else if (dragState.window === 'purplePalace') {
@@ -2049,7 +2670,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
             color: '#ffff00',
             padding: '12px 20px',
             borderRadius: '4px',
-            fontSize: '14px',
+            fontSize: '12px',
             fontWeight: 'bold',
             zIndex: 9999,
             border: '2px solid #ffff00',
@@ -2150,201 +2771,221 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                   borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
                   borderRadius: '2px'
                 }}>
+                  {/* Colour Heading */}
                   <div style={{
                     fontSize: '11px',
                     fontWeight: 'bold',
-                    marginBottom: '5px',
+                    marginBottom: '8px',
                     color: '#000080'
                   }}>
-                    Filters:
+                    Colour:
                   </div>
-                  <button
-                    onClick={() => {
-                      playClickSound()
-                      setCurrentFilter('normal')
-                    }}
-                    disabled={!isWebcamActive}
-                    style={{
-                      padding: '6px 12px',
-                      backgroundColor: currentFilter === 'normal' ? '#000080' : isWebcamActive ? '#c0c0c0' : '#a0a0a0',
-                      color: currentFilter === 'normal' ? 'white' : isWebcamActive ? 'black' : '#606060',
-                      border: '1px solid',
-                      borderColor: currentFilter === 'normal' ? '#000080' : isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
-                      cursor: isWebcamActive ? 'pointer' : 'not-allowed',
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      outline: 'none',
-                      opacity: isWebcamActive ? 1 : 0.5
-                    }}
-                  >
-                    Normal
-                  </button>
-                  <button
-                    onClick={() => {
-                      playClickSound()
-                      setCurrentFilter('blackAndWhite')
-                    }}
-                    disabled={!isWebcamActive}
-                    style={{
-                      padding: '6px 12px',
-                      backgroundColor: currentFilter === 'blackAndWhite' ? '#000080' : isWebcamActive ? '#c0c0c0' : '#a0a0a0',
-                      color: currentFilter === 'blackAndWhite' ? 'white' : isWebcamActive ? 'black' : '#606060',
-                      border: '1px solid',
-                      borderColor: currentFilter === 'blackAndWhite' ? '#000080' : isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
-                      cursor: isWebcamActive ? 'pointer' : 'not-allowed',
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      outline: 'none',
-                      opacity: isWebcamActive ? 1 : 0.5
-                    }}
-                  >
-                    B&W
-                  </button>
 
-                  {/* Heart Filter Toggle Checkbox */}
+                  {/* Color Filter Selector */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    marginTop: '8px',
-                    paddingTop: '8px',
-                    borderTop: '1px solid #808080'
+                    marginBottom: '5px'
                   }}>
-                    <input
-                      type="checkbox"
-                      id="heartToggle"
-                      checked={useHeartFilter}
-                      onChange={(e) => {
-                        playClickSound()
-                        setUseHeartFilter(e.target.checked)
-                      }}
+                    <button
+                      onClick={() => handleColorStep(-1)}
                       disabled={!isWebcamActive}
                       style={{
+                        width: '20px',
+                        height: '20px',
+                        padding: '0',
+                        fontSize: '10px',
                         cursor: isWebcamActive ? 'pointer' : 'not-allowed',
-                        width: '14px',
-                        height: '14px',
-                        opacity: isWebcamActive ? 1 : 0.5
-                      }}
-                    />
-                    <label
-                      htmlFor="heartToggle"
-                      style={{
-                        fontSize: '11px',
-                        cursor: isWebcamActive ? 'pointer' : 'not-allowed',
-                        userSelect: 'none',
-                        opacity: isWebcamActive ? 1 : 0.5
+                        backgroundColor: isWebcamActive ? '#c0c0c0' : '#a0a0a0',
+                        border: '2px solid',
+                        borderColor: isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                        color: '#000080',
+                        fontWeight: 'bold',
+                        opacity: isWebcamActive ? 1 : 0.5,
+                        outline: 'none'
                       }}
                     >
-                      Hearts ♥
-                    </label>
+                      &lt;
+                    </button>
+                    <span style={{ fontSize: '11px', minWidth: '45px', textAlign: 'center', color: '#000000' }}>
+                      {colorLabels[colorOptions.indexOf(currentFilter)]}
+                    </span>
+                    <button
+                      onClick={() => handleColorStep(1)}
+                      disabled={!isWebcamActive}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        padding: '0',
+                        fontSize: '10px',
+                        cursor: isWebcamActive ? 'pointer' : 'not-allowed',
+                        backgroundColor: isWebcamActive ? '#c0c0c0' : '#a0a0a0',
+                        border: '2px solid',
+                        borderColor: isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                        color: '#000080',
+                        fontWeight: 'bold',
+                        opacity: isWebcamActive ? 1 : 0.5,
+                        outline: 'none'
+                      }}
+                    >
+                      &gt;
+                    </button>
                   </div>
 
-                  {/* 4 Grid Toggle Checkbox */}
+                  {/* Add-Ons Heading */}
+                  <div style={{
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    marginTop: '12px',
+                    marginBottom: '8px',
+                    color: '#000080'
+                  }}>
+                    Add-Ons ☆
+                  </div>
+
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    marginTop: '8px'
+                    justifyContent: 'space-between'
                   }}>
-                    <input
-                      type="checkbox"
-                      id="fourGridToggle"
-                      checked={use4Grid}
-                      onChange={(e) => {
+                    {/* Left Arrow */}
+                    <button
+                      onClick={() => {
                         playClickSound()
-                        setUse4Grid(e.target.checked)
+                        setAddOnPage((prev) => (prev === 0 ? 2 : prev - 1))
                       }}
                       disabled={!isWebcamActive}
                       style={{
+                        width: '20px',
+                        height: '20px',
+                        padding: '0',
+                        fontSize: '10px',
                         cursor: isWebcamActive ? 'pointer' : 'not-allowed',
-                        width: '14px',
-                        height: '14px',
-                        opacity: isWebcamActive ? 1 : 0.5
-                      }}
-                    />
-                    <label
-                      htmlFor="fourGridToggle"
-                      style={{
-                        fontSize: '11px',
-                        cursor: isWebcamActive ? 'pointer' : 'not-allowed',
-                        userSelect: 'none',
-                        opacity: isWebcamActive ? 1 : 0.5
+                        backgroundColor: isWebcamActive ? '#c0c0c0' : '#a0a0a0',
+                        border: '2px solid',
+                        borderColor: isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                        color: '#000080',
+                        fontWeight: 'bold',
+                        opacity: isWebcamActive ? 1 : 0.5,
+                        outline: 'none'
                       }}
                     >
-                      4 Grid View
-                    </label>
-                  </div>
+                      &lt;
+                    </button>
 
-                  {/* Blood Splatter Toggle */}
-                  <div style={{ marginTop: '10px' }}>
-                    <input
-                      type="checkbox"
-                      id="bloodSplatterToggle"
-                      checked={useBloodSplatter}
-                      onChange={(e) => {
-                        setUseBloodSplatter(e.target.checked)
+                    {/* Add-On Item - Dynamic based on addOnPage */}
+                    {addOnPage === 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                        <input type="checkbox" id="grainToggle" checked={useGrain} onChange={(e) => { playClickSound(); setUseGrain(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                        <label htmlFor="grainToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Film Grain</label>
+                      </div>
+                    )}
+                    {addOnPage === 1 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                        <input type="checkbox" id="heartToggle" checked={useHeartFilter} onChange={(e) => { playClickSound(); setUseHeartFilter(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                        <label htmlFor="heartToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Hearts ♥</label>
+                      </div>
+                    )}
+                    {addOnPage === 2 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                        <input type="checkbox" id="bloodSplatterToggle" checked={useBloodSplatter} onChange={(e) => { playClickSound(); setUseBloodSplatter(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                        <label htmlFor="bloodSplatterToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Blood</label>
+                      </div>
+                    )}
+
+                    {/* Right Arrow */}
+                    <button
+                      onClick={() => {
                         playClickSound()
+                        setAddOnPage((prev) => (prev === 2 ? 0 : prev + 1))
                       }}
                       disabled={!isWebcamActive}
                       style={{
+                        width: '20px',
+                        height: '20px',
+                        padding: '0',
+                        fontSize: '10px',
                         cursor: isWebcamActive ? 'pointer' : 'not-allowed',
-                        width: '14px',
-                        height: '14px',
-                        opacity: isWebcamActive ? 1 : 0.5
-                      }}
-                    />
-                    <label
-                      htmlFor="bloodSplatterToggle"
-                      style={{
-                        fontSize: '11px',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                        marginLeft: '5px'
+                        backgroundColor: isWebcamActive ? '#c0c0c0' : '#a0a0a0',
+                        border: '2px solid',
+                        borderColor: isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                        color: '#000080',
+                        fontWeight: 'bold',
+                        opacity: isWebcamActive ? 1 : 0.5,
+                        outline: 'none'
                       }}
                     >
-                      Blood 
-                    </label>
+                      &gt;
+                    </button>
                   </div>
 
-                  {/* Grain Filter Checkbox */}
+                  {/* View Heading */}
+                  <div style={{
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    marginTop: '12px',
+                    marginBottom: '8px',
+                    color: '#000080'
+                  }}>
+                    View:
+                  </div>
+
+                  {/* View Selector */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    marginTop: '8px'
+                    gap: '8px'
                   }}>
-                    <input
-                      type="checkbox"
-                      id="grainToggle"
-                      checked={useGrain}
-                      onChange={(e) => {
-                        playClickSound()
-                        setUseGrain(e.target.checked)
-                      }}
+                    <button
+                      onClick={() => handleViewStep(-1)}
                       disabled={!isWebcamActive}
                       style={{
+                        width: '20px',
+                        height: '20px',
+                        padding: '0',
+                        fontSize: '10px',
                         cursor: isWebcamActive ? 'pointer' : 'not-allowed',
-                        width: '14px',
-                        height: '14px',
-                        opacity: isWebcamActive ? 1 : 0.5
-                      }}
-                    />
-                    <label
-                      htmlFor="grainToggle"
-                      style={{
-                        fontSize: '11px',
-                        cursor: isWebcamActive ? 'pointer' : 'not-allowed',
-                        userSelect: 'none',
-                        opacity: isWebcamActive ? 1 : 0.5
+                        backgroundColor: isWebcamActive ? '#c0c0c0' : '#a0a0a0',
+                        border: '2px solid',
+                        borderColor: isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                        color: '#000080',
+                        fontWeight: 'bold',
+                        opacity: isWebcamActive ? 1 : 0.5,
+                        outline: 'none'
                       }}
                     >
-                      Film Grain
-                    </label>
+                      &lt;
+                    </button>
+                    <span style={{ fontSize: '11px', minWidth: '50px', textAlign: 'center', color: '#000000' }}>
+                      {viewLabels[viewOptions.indexOf(currentView)]}
+                    </span>
+                    <button
+                      onClick={() => handleViewStep(1)}
+                      disabled={!isWebcamActive}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        padding: '0',
+                        fontSize: '10px',
+                        cursor: isWebcamActive ? 'pointer' : 'not-allowed',
+                        backgroundColor: isWebcamActive ? '#c0c0c0' : '#a0a0a0',
+                        border: '2px solid',
+                        borderColor: isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                        color: '#000080',
+                        fontWeight: 'bold',
+                        opacity: isWebcamActive ? 1 : 0.5,
+                        outline: 'none'
+                      }}
+                    >
+                      &gt;
+                    </button>
                   </div>
 
                   {/* Border Selection */}
-                  <div style={{ marginTop: '10px' }}>
-                    <div style={{ fontSize: '11px', marginBottom: '5px', opacity: isWebcamActive ? 1 : 0.5 }}>Borders:</div>
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '8px', color: '#000080', opacity: isWebcamActive ? 1 : 0.5 }}>Borders:</div>
                     <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                       <button
                         onClick={() => {
@@ -2376,7 +3017,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                         {currentBorder === 'none' ? 'None' :
                          currentBorder === 'film_frame' ? 'Film' :
                          currentBorder === 'filter_border' ? 'Waifus' :
-                         currentBorder === 'katana_border' ? 'Katana' : 'Mother\'s Armpits'}
+                         currentBorder === 'katana_border' ? 'Katana' : <span style={{ fontSize: '8px' }}>Mother's Armpits</span>}
                       </span>
                       <button
                         onClick={() => {
@@ -2385,6 +3026,174 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                           const newIndex = (currentIndex + 1) % options.length
                           setCurrentBorder(options[newIndex])
                           playClickSound()
+                        }}
+                        disabled={!isWebcamActive}
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          padding: '0',
+                          fontSize: '10px',
+                          cursor: isWebcamActive ? 'pointer' : 'not-allowed',
+                          backgroundColor: isWebcamActive ? '#c0c0c0' : '#a0a0a0',
+                          border: '2px solid',
+                          borderColor: isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                          color: '#000080',
+                          fontWeight: 'bold',
+                          opacity: isWebcamActive ? 1 : 0.5,
+                          outline: 'none'
+                        }}
+                      >
+                        &gt;
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Michonne Overlay Toggle */}
+                  <div style={{ marginTop: '10px' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '8px'
+                    }}>
+                      <div style={{
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        color: '#000080'
+                      }}>
+                        Piercings
+                      </div>
+                      {piercingPage !== 0 && (() => {
+                        const piercingStates = {
+                          1: useSeptum,
+                          2: useEyebrow,
+                          3: useLabret,
+                          4: useLip,
+                          5: useSpike,
+                          6: useNoseStud,
+                          7: useBridge,
+                          8: useEyeGem
+                        };
+                        const isPiercingEnabled = piercingStates[piercingPage];
+                        const isButtonDisabled = !isWebcamActive || !isPiercingEnabled;
+                        return (
+                          <button
+                            onClick={() => {
+                              playClickSound()
+                              setShowPiercingControls(!showPiercingControls)
+                            }}
+                            disabled={isButtonDisabled}
+                            style={{
+                              padding: '2px 8px',
+                              fontSize: '9px',
+                              cursor: isButtonDisabled ? 'not-allowed' : 'pointer',
+                              backgroundColor: isButtonDisabled ? '#a0a0a0' : '#c0c0c0',
+                              border: '2px solid',
+                              borderColor: isButtonDisabled ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf',
+                              color: '#000080',
+                              fontWeight: 'bold',
+                              opacity: isButtonDisabled ? 0.5 : 1,
+                              outline: 'none'
+                            }}
+                          >
+                            Controls
+                          </button>
+                        );
+                      })()}
+                    </div>
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      justifyContent: 'space-between'
+                    }}>
+                      {/* Left Arrow */}
+                      <button
+                        onClick={() => {
+                          playClickSound()
+                          setPiercingPage((prev) => (prev === 0 ? 8 : prev - 1))
+                        }}
+                        disabled={!isWebcamActive}
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          padding: '0',
+                          fontSize: '10px',
+                          cursor: isWebcamActive ? 'pointer' : 'not-allowed',
+                          backgroundColor: isWebcamActive ? '#c0c0c0' : '#a0a0a0',
+                          border: '2px solid',
+                          borderColor: isWebcamActive ? '#dfdfdf #808080 #808080 #dfdfdf' : '#808080 #dfdfdf #dfdfdf #808080',
+                          color: '#000080',
+                          fontWeight: 'bold',
+                          opacity: isWebcamActive ? 1 : 0.5,
+                          outline: 'none'
+                        }}
+                      >
+                        &lt;
+                      </button>
+
+                      {/* Piercing Item - Dynamic based on piercingPage */}
+                      {piercingPage === 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                          <input type="checkbox" id="noPiercingsToggle" checked={!useSeptum && !useEyebrow && !useLip && !useLabret && !useNoseStud && !useSpike && !useEyeGem} onChange={(e) => { playClickSound(); if (e.target.checked) { setUseSeptum(false); setUseEyebrow(false); setUseLip(false); setUseLabret(false); setUseNoseStud(false); setUseSpike(false); setUseEyeGem(false) } }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                          <label htmlFor="noPiercingsToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>None</label>
+                        </div>
+                      )}
+                      {piercingPage === 1 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                          <input type="checkbox" id="septumToggle" checked={useSeptum} onChange={(e) => { playClickSound(); setUseSeptum(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                          <label htmlFor="septumToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Septum</label>
+                        </div>
+                      )}
+                      {piercingPage === 2 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                          <input type="checkbox" id="eyebrowToggle" checked={useEyebrow} onChange={(e) => { playClickSound(); setUseEyebrow(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                          <label htmlFor="eyebrowToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Eyebrow</label>
+                        </div>
+                      )}
+                      {piercingPage === 3 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                          <input type="checkbox" id="labretToggle" checked={useLabret} onChange={(e) => { playClickSound(); setUseLabret(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                          <label htmlFor="labretToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Labret</label>
+                        </div>
+                      )}
+                      {piercingPage === 4 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                          <input type="checkbox" id="lipToggle" checked={useLip} onChange={(e) => { playClickSound(); setUseLip(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                          <label htmlFor="lipToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Lip</label>
+                        </div>
+                      )}
+                      {piercingPage === 5 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                          <input type="checkbox" id="spikeToggle" checked={useSpike} onChange={(e) => { playClickSound(); setUseSpike(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                          <label htmlFor="spikeToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Spikes</label>
+                        </div>
+                      )}
+                      {piercingPage === 6 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                          <input type="checkbox" id="noseStudToggle" checked={useNoseStud} onChange={(e) => { playClickSound(); setUseNoseStud(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                          <label htmlFor="noseStudToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Nose</label>
+                        </div>
+                      )}
+                      {piercingPage === 7 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                          <input type="checkbox" id="bridgeToggle" checked={useBridge} onChange={(e) => { playClickSound(); setUseBridge(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                          <label htmlFor="bridgeToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Bridge</label>
+                        </div>
+                      )}
+                      {piercingPage === 8 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
+                          <input type="checkbox" id="eyeGemToggle" checked={useEyeGem} onChange={(e) => { playClickSound(); setUseEyeGem(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
+                          <label htmlFor="eyeGemToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Eye Gem</label>
+                        </div>
+                      )}
+
+                      {/* Right Arrow */}
+                      <button
+                        onClick={() => {
+                          playClickSound()
+                          setPiercingPage((prev) => (prev === 8 ? 0 : prev + 1))
                         }}
                         disabled={!isWebcamActive}
                         style={{
@@ -2437,6 +3246,49 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                       Michonne
                     </label>
                   </div>
+
+                  {/* Reset Controls Button */}
+                  <button
+                    onClick={() => {
+                      playClickSound()
+                      setUseGrain(true)
+                      setShowMichonneOverlay(true)
+                      setCurrentView('normal')
+                      setCurrentFilter('normal')
+                      setCurrentBorder('none')
+                      setUseSeptum(false)
+                      setUseEyebrow(false)
+                      setUseLip(false)
+                      setUseLabret(false)
+                      setUseNoseStud(false)
+                      setUseSpike(false)
+                      setUseBridge(false)
+                      setUseEyeGem(false)
+                      setPiercingPage(0)
+                    }}
+                    style={{
+                      marginTop: '15px',
+                      padding: '4px 12px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      backgroundColor: '#c0c0c0',
+                      border: '2px solid',
+                      borderColor: '#dfdfdf #808080 #808080 #dfdfdf',
+                      color: '#000080',
+                      fontWeight: 'bold',
+                      outline: 'none',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}
+                    onMouseDown={(e) => {
+                      e.currentTarget.style.borderColor = '#808080 #dfdfdf #dfdfdf #808080'
+                    }}
+                    onMouseUp={(e) => {
+                      e.currentTarget.style.borderColor = '#dfdfdf #808080 #808080 #dfdfdf'
+                    }}
+                  >
+                    Reset Controls
+                  </button>
                 </div>
               </div>
 
@@ -2504,17 +3356,17 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                 </button>
                 <button
                   onClick={handleCaptureWithTimer}
-                  disabled={!isWebcamActive}
+                  disabled={!isWebcamActive || isCapturing}
                   className="btn btn-capture"
                   style={{
                     outline: 'none',
-                    color: !isWebcamActive ? '#888888' : '#000080',
+                    color: !isWebcamActive || isCapturing ? '#888888' : '#000080',
                     fontWeight: 'bold',
-                    opacity: !isWebcamActive ? 0.5 : 1,
-                    cursor: !isWebcamActive ? 'not-allowed' : 'pointer',
-                    backgroundColor: !isWebcamActive ? '#d0d0d0' : '#c0c0c0',
+                    opacity: !isWebcamActive || isCapturing ? 0.5 : 1,
+                    cursor: !isWebcamActive || isCapturing ? 'not-allowed' : 'pointer',
+                    backgroundColor: !isWebcamActive || isCapturing ? '#d0d0d0' : '#c0c0c0',
                     border: '2px solid',
-                    borderColor: !isWebcamActive ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf'
+                    borderColor: !isWebcamActive || isCapturing ? '#808080 #dfdfdf #dfdfdf #808080' : '#dfdfdf #808080 #808080 #dfdfdf'
                   }}
                 >
                   ● Capture
@@ -2774,6 +3626,240 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                 Reset Position
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Piercing Controls Modal */}
+      {showPiercingControls && (
+        <div className="main-container secondary window" style={{
+          position: 'fixed',
+          top: `${piercingControlsPos.y}px`,
+          left: `${piercingControlsPos.x}px`,
+          zIndex: 1003,
+          maxWidth: '300px'
+        }}>
+          <div 
+            className="title"
+            onMouseDown={(e) => handleMouseDown(e, 'piercingControlsWindow', piercingControlsPos, (pos) => setPiercingControlsPos(pos))}
+            style={{ 
+              cursor: dragState?.window === 'piercingControlsWindow' ? 'grabbing' : 'grab',
+              borderBottom: dragState?.window === 'piercingControlsWindow' ? '2px solid #ffffff' : 'none'
+            }}
+          >
+            <h1>⚙️ {['None', 'Septum', 'Eyebrow', 'Labret', 'Lip', 'Spikes', 'Nose', 'Bridge', 'Eyes'][piercingPage]} Controls</h1>
+            <button 
+              onClick={() => {
+                playClickSound()
+                setShowPiercingControls(false)
+              }}
+              style={{
+                marginLeft: 'auto',
+                padding: '2px 6px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                outline: 'none',
+                backgroundColor: '#d85c5c'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="container-inner controls-container">
+            {piercingPage === 0 && <p>Select a piercing to adjust its position</p>}
+            {piercingPage === 1 && ( // Septum
+              <>
+                <div className="control-group">
+                  <label>Move Horizontally: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_septum_offsetX'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_septum_offsetX'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_septum_offsetX': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Move Vertically: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_septum_offsetY'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_septum_offsetY'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_septum_offsetY': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Scale: <span className="value" style={{ fontSize: '10px' }}>{((piercingAdjustments['piercing_septum_scale'] ?? 1) * 100).toFixed(0)}%</span></label>
+                  <input type="range" min="0.3" max="3" step="0.1" value={piercingAdjustments['piercing_septum_scale'] ?? 1} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_septum_scale': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div style={{ marginTop: '12px', display: 'flex', gap: '6px' }}>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; updated['piercing_septum_default'] = { offsetX: updated['piercing_septum_offsetX'] ?? 0, offsetY: updated['piercing_septum_offsetY'] ?? 0, scale: updated['piercing_septum_scale'] ?? 1 }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Save As New Default</button>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; const defaultValues = updated['piercing_septum_default']; delete updated['piercing_septum_offsetX']; delete updated['piercing_septum_offsetY']; delete updated['piercing_septum_scale']; if (defaultValues) { updated['piercing_septum_offsetX'] = defaultValues.offsetX; updated['piercing_septum_offsetY'] = defaultValues.offsetY; updated['piercing_septum_scale'] = defaultValues.scale; } localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Reset to Default</button>
+                </div>
+              </>
+            )}
+            {piercingPage === 2 && ( // Eyebrow
+              <>
+                <div className="control-group">
+                  <label>Move Horizontally: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_eyebrow_offsetX'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_eyebrow_offsetX'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_eyebrow_offsetX': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Move Vertically: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_eyebrow_offsetY'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_eyebrow_offsetY'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_eyebrow_offsetY': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Scale: <span className="value" style={{ fontSize: '10px' }}>{((piercingAdjustments['piercing_eyebrow_scale'] ?? 1) * 100).toFixed(0)}%</span></label>
+                  <input type="range" min="0.3" max="3" step="0.1" value={piercingAdjustments['piercing_eyebrow_scale'] ?? 1} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_eyebrow_scale': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div style={{ marginTop: '12px', display: 'flex', gap: '6px' }}>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; updated['piercing_eyebrow_default'] = { offsetX: updated['piercing_eyebrow_offsetX'] ?? 0, offsetY: updated['piercing_eyebrow_offsetY'] ?? 0, scale: updated['piercing_eyebrow_scale'] ?? 1 }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Save As New Default</button>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; const defaultValues = updated['piercing_eyebrow_default']; delete updated['piercing_eyebrow_offsetX']; delete updated['piercing_eyebrow_offsetY']; delete updated['piercing_eyebrow_scale']; if (defaultValues) { updated['piercing_eyebrow_offsetX'] = defaultValues.offsetX; updated['piercing_eyebrow_offsetY'] = defaultValues.offsetY; updated['piercing_eyebrow_scale'] = defaultValues.scale; } localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Reset to Default</button>
+                </div>
+              </>
+            )}
+            {piercingPage === 7 && ( // Bridge - with LEFT and RIGHT controls
+              <>
+                <p style={{ fontSize: '9px', marginBottom: '8px', color: '#666' }}>Left Bridge</p>
+                <div className="control-group">
+                  <label>Move Horizontally: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_bridgeLeft_offsetX'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_bridgeLeft_offsetX'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_bridgeLeft_offsetX': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Move Vertically: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_bridgeLeft_offsetY'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_bridgeLeft_offsetY'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_bridgeLeft_offsetY': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <p style={{ fontSize: '9px', marginBottom: '8px', marginTop: '12px', color: '#666' }}>Right Bridge</p>
+                <div className="control-group">
+                  <label>Move Horizontally: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_bridgeRight_offsetX'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_bridgeRight_offsetX'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_bridgeRight_offsetX': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Move Vertically: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_bridgeRight_offsetY'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_bridgeRight_offsetY'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_bridgeRight_offsetY': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Scale Both: <span className="value" style={{ fontSize: '10px' }}>{((piercingAdjustments['piercing_bridgeLeft_scale'] ?? 1) * 100).toFixed(0)}%</span></label>
+                  <input type="range" min="0.3" max="3" step="0.1" value={piercingAdjustments['piercing_bridgeLeft_scale'] ?? 1} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_bridgeLeft_scale': val, 'piercing_bridgeRight_scale': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div style={{ marginTop: '12px', display: 'flex', gap: '6px' }}>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; updated['piercing_bridgeLeft_default'] = { offsetX: updated['piercing_bridgeLeft_offsetX'] ?? 0, offsetY: updated['piercing_bridgeLeft_offsetY'] ?? 0, scale: updated['piercing_bridgeLeft_scale'] ?? 1 }; updated['piercing_bridgeRight_default'] = { offsetX: updated['piercing_bridgeRight_offsetX'] ?? 0, offsetY: updated['piercing_bridgeRight_offsetY'] ?? 0, scale: updated['piercing_bridgeRight_scale'] ?? 1 }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Save As New Default</button>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; ['bridgeLeft', 'bridgeRight'].forEach(p => { const defaultValues = updated[`piercing_${p}_default`]; delete updated[`piercing_${p}_offsetX`]; delete updated[`piercing_${p}_offsetY`]; delete updated[`piercing_${p}_scale`]; if (defaultValues) { updated[`piercing_${p}_offsetX`] = defaultValues.offsetX; updated[`piercing_${p}_offsetY`] = defaultValues.offsetY; updated[`piercing_${p}_scale`] = defaultValues.scale; } }); localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Reset to Default</button>
+                </div>
+              </>
+            )}
+            {piercingPage === 3 && ( // Labret
+              <>
+                <div className="control-group">
+                  <label>Move Horizontally: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_labret_offsetX'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_labret_offsetX'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_labret_offsetX': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Move Vertically: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_labret_offsetY'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_labret_offsetY'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_labret_offsetY': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Scale: <span className="value" style={{ fontSize: '10px' }}>{((piercingAdjustments['piercing_labret_scale'] ?? 1) * 100).toFixed(0)}%</span></label>
+                  <input type="range" min="0.3" max="3" step="0.1" value={piercingAdjustments['piercing_labret_scale'] ?? 1} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_labret_scale': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div style={{ marginTop: '12px', display: 'flex', gap: '6px' }}>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; updated['piercing_labret_default'] = { offsetX: updated['piercing_labret_offsetX'] ?? 0, offsetY: updated['piercing_labret_offsetY'] ?? 0, scale: updated['piercing_labret_scale'] ?? 1 }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Save As New Default</button>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; const defaultValues = updated['piercing_labret_default']; delete updated['piercing_labret_offsetX']; delete updated['piercing_labret_offsetY']; delete updated['piercing_labret_scale']; if (defaultValues) { updated['piercing_labret_offsetX'] = defaultValues.offsetX; updated['piercing_labret_offsetY'] = defaultValues.offsetY; updated['piercing_labret_scale'] = defaultValues.scale; } localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Reset to Default</button>
+                </div>
+              </>
+            )}
+            {piercingPage === 4 && ( // Lip
+              <>
+                <div className="control-group">
+                  <label>Move Horizontally: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_lip_offsetX'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_lip_offsetX'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_lip_offsetX': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Move Vertically: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_lip_offsetY'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_lip_offsetY'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_lip_offsetY': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Scale: <span className="value" style={{ fontSize: '10px' }}>{((piercingAdjustments['piercing_lip_scale'] ?? 1) * 100).toFixed(0)}%</span></label>
+                  <input type="range" min="0.3" max="3" step="0.1" value={piercingAdjustments['piercing_lip_scale'] ?? 1} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_lip_scale': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div style={{ marginTop: '12px', display: 'flex', gap: '6px' }}>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; updated['piercing_lip_default'] = { offsetX: updated['piercing_lip_offsetX'] ?? 0, offsetY: updated['piercing_lip_offsetY'] ?? 0, scale: updated['piercing_lip_scale'] ?? 1 }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Save As New Default</button>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; const defaultValues = updated['piercing_lip_default']; delete updated['piercing_lip_offsetX']; delete updated['piercing_lip_offsetY']; delete updated['piercing_lip_scale']; if (defaultValues) { updated['piercing_lip_offsetX'] = defaultValues.offsetX; updated['piercing_lip_offsetY'] = defaultValues.offsetY; updated['piercing_lip_scale'] = defaultValues.scale; } localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Reset to Default</button>
+                </div>
+              </>
+            )}
+            {piercingPage === 5 && ( // Spikes
+              <>
+                <p style={{ fontSize: '9px', marginBottom: '8px', color: '#666' }}>Left Spike</p>
+                <div className="control-group">
+                  <label>Move Horizontally: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_spikeLeft_offsetX'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_spikeLeft_offsetX'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_spikeLeft_offsetX': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Move Vertically: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_spikeLeft_offsetY'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_spikeLeft_offsetY'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_spikeLeft_offsetY': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Rotate: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_spikeLeft_rotate'] ?? 0}°</span></label>
+                  <input type="range" min="-180" max="180" value={piercingAdjustments['piercing_spikeLeft_rotate'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_spikeLeft_rotate': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <p style={{ fontSize: '9px', marginBottom: '8px', marginTop: '12px', color: '#666' }}>Right Spike</p>
+                <div className="control-group">
+                  <label>Move Horizontally: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_spikeRight_offsetX'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_spikeRight_offsetX'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_spikeRight_offsetX': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Move Vertically: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_spikeRight_offsetY'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_spikeRight_offsetY'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_spikeRight_offsetY': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Rotate: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_spikeRight_rotate'] ?? 0}°</span></label>
+                  <input type="range" min="-180" max="180" value={piercingAdjustments['piercing_spikeRight_rotate'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_spikeRight_rotate': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Scale Both: <span className="value" style={{ fontSize: '10px' }}>{((piercingAdjustments['piercing_spikeLeft_scale'] ?? 1) * 100).toFixed(0)}%</span></label>
+                  <input type="range" min="0.3" max="3" step="0.1" value={piercingAdjustments['piercing_spikeLeft_scale'] ?? 1} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_spikeLeft_scale': val, 'piercing_spikeRight_scale': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div style={{ marginTop: '12px', display: 'flex', gap: '6px' }}>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; updated['piercing_spikeLeft_default'] = { offsetX: updated['piercing_spikeLeft_offsetX'] ?? 0, offsetY: updated['piercing_spikeLeft_offsetY'] ?? 0, scale: updated['piercing_spikeLeft_scale'] ?? 1, rotate: updated['piercing_spikeLeft_rotate'] ?? 0 }; updated['piercing_spikeRight_default'] = { offsetX: updated['piercing_spikeRight_offsetX'] ?? 0, offsetY: updated['piercing_spikeRight_offsetY'] ?? 0, scale: updated['piercing_spikeRight_scale'] ?? 1, rotate: updated['piercing_spikeRight_rotate'] ?? 0 }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Save As New Default</button>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; ['spikeLeft', 'spikeRight'].forEach(p => { const defaultValues = updated[`piercing_${p}_default`]; delete updated[`piercing_${p}_offsetX`]; delete updated[`piercing_${p}_offsetY`]; delete updated[`piercing_${p}_scale`]; delete updated[`piercing_${p}_rotate`]; if (defaultValues) { updated[`piercing_${p}_offsetX`] = defaultValues.offsetX; updated[`piercing_${p}_offsetY`] = defaultValues.offsetY; updated[`piercing_${p}_scale`] = defaultValues.scale; updated[`piercing_${p}_rotate`] = defaultValues.rotate ?? 0; } }); localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Reset to Default</button>
+                </div>
+              </>
+            )}
+            {piercingPage === 6 && ( // Nose
+              <>
+                <div className="control-group">
+                  <label>Move Horizontally: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_noseStud_offsetX'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_noseStud_offsetX'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_noseStud_offsetX': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Move Vertically: <span className="value" style={{ fontSize: '10px' }}>{piercingAdjustments['piercing_noseStud_offsetY'] ?? 0}</span></label>
+                  <input type="range" min="-50" max="50" value={piercingAdjustments['piercing_noseStud_offsetY'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_noseStud_offsetY': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Scale: <span className="value" style={{ fontSize: '10px' }}>{((piercingAdjustments['piercing_noseStud_scale'] ?? 1) * 100).toFixed(0)}%</span></label>
+                  <input type="range" min="0.3" max="3" step="0.1" value={piercingAdjustments['piercing_noseStud_scale'] ?? 1} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_noseStud_scale': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '4px' }} />
+                </div>
+                <div style={{ marginTop: '12px', display: 'flex', gap: '6px' }}>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; updated['piercing_noseStud_default'] = { offsetX: updated['piercing_noseStud_offsetX'] ?? 0, offsetY: updated['piercing_noseStud_offsetY'] ?? 0, scale: updated['piercing_noseStud_scale'] ?? 1 }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Save As New Default</button>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; const defaultValues = updated['piercing_noseStud_default']; delete updated['piercing_noseStud_offsetX']; delete updated['piercing_noseStud_offsetY']; delete updated['piercing_noseStud_scale']; if (defaultValues) { updated['piercing_noseStud_offsetX'] = defaultValues.offsetX; updated['piercing_noseStud_offsetY'] = defaultValues.offsetY; updated['piercing_noseStud_scale'] = defaultValues.scale; } localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Reset to Default</button>
+                </div>
+              </>
+            )}
+            {piercingPage === 8 && ( // Eye Gem
+              <>
+                <div className="control-group">
+                  <label>Move Horizontally: <span className="value" style={{ fontSize: '9px' }}>{piercingAdjustments['piercing_eyeGem_offsetX'] ?? 0}</span></label>
+                  <input type="range" min="-20" max="20" value={piercingAdjustments['piercing_eyeGem_offsetX'] ?? 0} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_eyeGem_offsetX': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Move Vertically: <span className="value" style={{ fontSize: '9px' }}>{piercingAdjustments['piercing_eyeGem_offsetY'] ?? -20}</span></label>
+                  <input type="range" min="-50" max="20" value={piercingAdjustments['piercing_eyeGem_offsetY'] ?? -20} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_eyeGem_offsetY': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div className="control-group">
+                  <label>Scale: <span className="value" style={{ fontSize: '9px' }}>{((piercingAdjustments['piercing_eyeGem_scale'] ?? 1.9) * 100).toFixed(0)}%</span></label>
+                  <input type="range" min="0.3" max="3" step="0.1" value={piercingAdjustments['piercing_eyeGem_scale'] ?? 1.9} onChange={(e) => { const val = Number(e.target.value); setPiercingAdjustments(prev => { const updated = { ...prev, 'piercing_eyeGem_scale': val }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} className="slider" style={{ width: '100%', marginTop: '2px' }} />
+                </div>
+                <div style={{ marginTop: '12px', display: 'flex', gap: '6px' }}>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; updated['piercing_eyeGem_default'] = { offsetX: updated['piercing_eyeGem_offsetX'] ?? 0, offsetY: updated['piercing_eyeGem_offsetY'] ?? 0, scale: updated['piercing_eyeGem_scale'] ?? 1 }; localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Save As New Default</button>
+                  <button onClick={() => { playClickSound(); setPiercingAdjustments(prev => { const updated = { ...prev }; const defaultValues = updated['piercing_eyeGem_default']; delete updated['piercing_eyeGem_offsetX']; delete updated['piercing_eyeGem_offsetY']; delete updated['piercing_eyeGem_scale']; if (defaultValues) { updated['piercing_eyeGem_offsetX'] = defaultValues.offsetX; updated['piercing_eyeGem_offsetY'] = defaultValues.offsetY; updated['piercing_eyeGem_scale'] = defaultValues.scale; } localStorage.setItem('piercingAdjustments', JSON.stringify(updated)); return updated }); }} style={{ padding: '4px 8px', backgroundColor: '#c0c0c0', color: '#000080', border: '2px solid', borderColor: '#dfdfdf #808080 #808080 #dfdfdf', cursor: 'pointer', fontWeight: 'bold', fontSize: '9px', flex: 1, outline: 'none' }}>Reset to Default</button>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="statusbar">
+            <div className="left">✦</div>
           </div>
         </div>
       )}
