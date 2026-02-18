@@ -332,8 +332,8 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
         console.error('Error loading trashed images:', error)
       }
     }
-    // Load window positions from sessionStorage (session-only, resets on page reload/tab close)
-    const savedWindowPositions = sessionStorage.getItem('windowPositions')
+    // Load window positions from localStorage (persists across sessions)
+    const savedWindowPositions = localStorage.getItem('windowPositions')
     if (savedWindowPositions) {
       try {
         const positions = JSON.parse(savedWindowPositions)
@@ -366,7 +366,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
     localStorage.setItem('captureTimerOption', JSON.stringify(timerOption))
   }, [timerOption])
 
-  // Persist window positions to sessionStorage (session-only, resets on page reload/tab close)
+  // Persist window positions to localStorage (persists across sessions)
   useEffect(() => {
     const windowPositions = {
       kissCamPos,
@@ -378,7 +378,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
       purplePalacePos,
       captureNotificationPos,
     }
-    sessionStorage.setItem('windowPositions', JSON.stringify(windowPositions))
+    localStorage.setItem('windowPositions', JSON.stringify(windowPositions))
   }, [kissCamPos, downloadsPos, musicPlayerPos, controlsWindowPos, piercingControlsPos, trashPos, purplePalacePos, captureNotificationPos])
 
   // Persist view option to localStorage
@@ -2879,7 +2879,7 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
                     {addOnPage === 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'center' }}>
                         <input type="checkbox" id="grainToggle" checked={useGrain} onChange={(e) => { playClickSound(); setUseGrain(e.target.checked) }} disabled={!isWebcamActive} style={{ cursor: isWebcamActive ? 'pointer' : 'not-allowed', width: '10px', height: '10px', opacity: isWebcamActive ? 1 : 0.5 }} />
-                        <label htmlFor="grainToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '40px', wordWrap: 'break-word' }}>Film Grain</label>
+                        <label htmlFor="grainToggle" style={{ fontSize: '8px', cursor: isWebcamActive ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: isWebcamActive ? 1 : 0.5, maxWidth: '25px', wordWrap: 'break-word' }}>Film Grain</label>
                       </div>
                     )}
                     {addOnPage === 1 && (
