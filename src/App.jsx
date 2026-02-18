@@ -367,20 +367,6 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
   }, [timerOption])
 
   // Persist window positions to localStorage (persists across sessions)
-  useEffect(() => {
-    const windowPositions = {
-      kissCamPos,
-      downloadsPos,
-      musicPlayerPos,
-      controlsWindowPos,
-      piercingControlsPos,
-      trashPos,
-      purplePalacePos,
-      captureNotificationPos,
-    }
-    localStorage.setItem('windowPositions', JSON.stringify(windowPositions))
-  }, [kissCamPos, downloadsPos, musicPlayerPos, controlsWindowPos, piercingControlsPos, trashPos, purplePalacePos, captureNotificationPos])
-
   // Persist view option to localStorage
   useEffect(() => {
     localStorage.setItem('currentView', JSON.stringify(currentView))
@@ -1602,24 +1588,39 @@ const [downloadsPos, setDownloadsPos] = useState({ x: 50, y: 483 })
     if (useBloodSplatter && bloodSplatterRef.current) {
       try {
         const splatterImg = bloodSplatterRef.current
-        const splatterScale = 1.2 // Scale to cover screen
-        const splatterWidth = canvas.width * splatterScale
-        const splatterHeight = canvas.height * splatterScale
-        const splatterX = (canvas.width - splatterWidth) / 2 - 200
-        const splatterY = (canvas.height - splatterHeight) / 2
 
         ctx.globalAlpha = 0.6
         ctx.globalCompositeOperation = 'multiply' // Darken blend mode
         
         if (currentView === 'double') {
-          // Draw splatter twice in double view - once for each side
+          // Draw 2 smaller splatters on each side in double view
           const halfWidth = canvas.width / 2
-          // Left side splatter
-          ctx.drawImage(splatterImg, splatterX, splatterY, splatterWidth, splatterHeight)
-          // Right side splatter (offset)
-          ctx.drawImage(splatterImg, splatterX + halfWidth, splatterY, splatterWidth, splatterHeight)
+          const splatterScale = 0.5 // Make smaller
+          const splatterWidth = canvas.width * splatterScale
+          const splatterHeight = canvas.height * splatterScale
+          
+          // Left side - two splatters
+          const leftX1 = 50
+          const leftX2 = halfWidth - splatterWidth - 50
+          const topY = 100
+          const bottomY = canvas.height - splatterHeight - 100
+          
+          ctx.drawImage(splatterImg, leftX1, topY, splatterWidth, splatterHeight)
+          ctx.drawImage(splatterImg, leftX2, bottomY, splatterWidth, splatterHeight)
+          
+          // Right side - two splatters
+          const rightX1 = halfWidth + 50
+          const rightX2 = canvas.width - splatterWidth - 50
+          ctx.drawImage(splatterImg, rightX1, topY, splatterWidth, splatterHeight)
+          ctx.drawImage(splatterImg, rightX2, bottomY, splatterWidth, splatterHeight)
         } else {
           // Single splatter for normal/grid view
+          const splatterScale = 1.2
+          const splatterWidth = canvas.width * splatterScale
+          const splatterHeight = canvas.height * splatterScale
+          const splatterX = (canvas.width - splatterWidth) / 2 - 200
+          const splatterY = (canvas.height - splatterHeight) / 2
+          
           ctx.drawImage(splatterImg, splatterX, splatterY, splatterWidth, splatterHeight)
         }
         
